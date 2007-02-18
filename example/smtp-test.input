@@ -1,0 +1,7 @@
+helo smtp.example.org
+mail from:<jane.doe@example.org>
+rcpt to:<joe.doe@example.net>
+RCPT to:<@example.org,@example.com:joe.doe@example.net>
+VrFy localuser
+data
+quit

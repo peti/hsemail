@@ -1,0 +1,12 @@
+Name:            hsemail
+Version:         0.0-2005-04-29
+Author:          Peter Simons <simons@cryp.to>
+License:         GPL
+Maintainer:      simons@cryp.to
+Homepage:        http://cryp.to/hsemail/
+Description:     Internet Message Parsers
+Build-Depends:   base, mtl, parsec
+Exposed-Modules:
+    Text.ParserCombinators.Parsec.Rfc2234,
+    Text.ParserCombinators.Parsec.Rfc2821,
+    Text.ParserCombinators.Parsec.Rfc2822
