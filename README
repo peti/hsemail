@@ -24,10 +24,16 @@ Documentation
      Haddock-generated reference of all exported
      functions.
 
+See Also
+--------
+
+  `librfc2822`_
+     An E-mail parser library for C++ programmers.
+
 Copyleft
 --------
 
-  Copyright (c) 2005 Peter Simons <simons@cryp.to>. All
+  Copyright (c) 2005-2007 Peter Simons <simons@cryp.to>. All
   rights reserved. This software is released under the terms
   of the `GNU General Public License
   <http://www.gnu.org/licenses/gpl.html>`_.
@@ -43,5 +49,7 @@ Copyleft
 .. _hsemail-2005-04-29.tar.gz: http://cryp.to/hsemail/hsemail-2005-04-29.tar.gz
 
 .. _Reference Documentation: docs/index.html
+
+.. _librfc2822: http://cryp.to/librfc2822/
 
 .. _test.hs: test.hs
