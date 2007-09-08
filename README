@@ -1,28 +1,27 @@
 Parsers for the Internet Message Standard
 =========================================
 
-:Latest Release: hsemail-2005-04-29.tar.gz_
+:Latest Release: hsemail-1.0.tar.gz_
 :Darcs:          darcs_ get --partial http://cryp.to/hsemail/
 
 Synopsis
 --------
 
-  This package contains a bunch of Parsec_ combinators for
-  the syntax of Internet messages, such as e-mail, news
-  articles, namely RFC2234, RFC2821, and RFC2822.
+  This package contains Parsec_ combinators for the syntax of
+  Internet messages, such as e-mail, news articles, namely
+  RFC2234, RFC2821, and RFC2822.
 
-  There are two small example programs included in the
-  distribution::
+  The ``example`` directory contains two small programs that can
+  be run as follows::
 
-    $ runhugs message-test.hs <message-test.input
-    $ runghc smtp-test.hs <smtp-test.input
+    $ runhaskell message-test.hs <message-test.input
+    $ runhaskell smtp-test.hs <smtp-test.input
 
 Documentation
 -------------
 
   `Reference Documentation`_
-     Haddock-generated reference of all exported
-     functions.
+     Haddock-generated reference of all exported functions.
 
 See Also
 --------
@@ -46,10 +45,8 @@ Copyleft
 
 .. _darcs: http://abridgegame.org/darcs/
 
-.. _hsemail-2005-04-29.tar.gz: http://cryp.to/hsemail/hsemail-2005-04-29.tar.gz
+.. _hsemail-1.0.tar.gz: http://cryp.to/hsemail/hsemail-1.0.tar.gz
 
 .. _Reference Documentation: docs/index.html
 
 .. _librfc2822: http://cryp.to/librfc2822/
-
-.. _test.hs: test.hs
