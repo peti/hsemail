@@ -1,12 +1,11 @@
-{-# OPTIONS -fglasgow-exts #-}
 {- |
    Module      :  Text.ParserCombinators.Parsec.Rfc2821
-   Copyright   :  (c) 2005-04-29 by Peter Simons
-   License     :  GPL2
+   Copyright   :  (c) 2007 Peter Simons
+   License     :  BSD3
 
    Maintainer  :  simons@cryp.to
    Stability   :  provisional
-   Portability :  Haskell 2-pre
+   Portability :  portable
 
    This module exports parser combinators for the grammar
    described in RFC2821, \"Simple Mail Transfer Protocol\",
@@ -21,7 +20,6 @@ import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Error
 import Data.List ( intersperse )
 import Data.Char ( toLower )
-import Data.Typeable
 import Text.ParserCombinators.Parsec.Rfc2234
 
 ----------------------------------------------------------------------
@@ -35,7 +33,7 @@ data SessionState
   | HaveRcptTo
   | HaveData
   | HaveQuit
-  deriving (Enum, Bounded, Eq, Ord, Show, Typeable)
+  deriving (Enum, Bounded, Eq, Ord, Show)
 
 data Event
   = Greeting                    -- ^ reserved for the user
@@ -186,7 +184,6 @@ instance Show SmtpCmd where
 -- two mailboxes for equality, the hostname is case-insensitive.
 
 data Mailbox = Mailbox [String] String String
-             deriving (Typeable)
 
 instance Eq Mailbox where
   lhs == rhs  =  (norm lhs) == (norm rhs)

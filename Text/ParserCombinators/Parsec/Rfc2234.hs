@@ -1,7 +1,7 @@
 {- |
    Module      :  Text.ParserCombinators.Parsec.Rfc2234
-   Copyright   :  (c) 2005-02-10 by Peter Simons
-   License     :  GPL2
+   Copyright   :  (c) 2007 Peter Simons
+   License     :  BSD3
 
    Maintainer  :  simons@cryp.to
    Stability   :  provisional
