@@ -5,7 +5,8 @@ License:        BSD3
 License-file:	LICENSE
 Maintainer:     simons@cryp.to
 Homepage:       http://cryp.to/hsemail/
-Description:    Internet Message Parsers
+Synopsis:       Internet Message Parsers
+Description:    Parsers for the syntax defined in RFC2821 and 2822
 Category:       Parsing
 Build-Depends:  base, mtl, parsec
 
