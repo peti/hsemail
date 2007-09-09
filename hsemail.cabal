@@ -9,12 +9,10 @@ Synopsis:       Internet Message Parsers
 Description:    Parsers for the syntax defined in RFC2821 and 2822
 Category:       Parsing
 Build-Depends:  base, mtl, parsec
-
 Exposed-Modules:
     Text.ParserCombinators.Parsec.Rfc2234,
     Text.ParserCombinators.Parsec.Rfc2821,
     Text.ParserCombinators.Parsec.Rfc2822
-
 Data-files:
     README,
     prologue.txt,
