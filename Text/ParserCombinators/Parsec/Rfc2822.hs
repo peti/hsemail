@@ -26,6 +26,10 @@ import System.Time
 import Text.ParserCombinators.Parsec.Rfc2234
         hiding ( quoted_pair, quoted_string )
 
+data NameAddr = NameAddr { nameAddr_name :: Maybe String
+                         , nameAddr_addr :: String }
+                deriving (Show,Eq)
+
 -- * Useful parser combinators
 
 -- |@unfold@ @=@ @between (optional cfws) (optional cfws)@
@@ -398,23 +402,24 @@ zone            = (    do char '+'
 -- |Parse a single 'mailbox' or an address 'group' and return the
 -- address(es).
 
-address         :: CharParser a [String]
+address         :: CharParser a [NameAddr]
 address         = try (do { r <- mailbox; return [r] }) <|> group
                   <?> "address"
 
 -- |Parse a 'name_addr' or an 'addr_spec' and return the
 -- address.
 
-mailbox         :: CharParser a String
-mailbox         = try name_addr <|> addr_spec
+mailbox         :: CharParser a NameAddr
+mailbox         = try name_addr <|> (addr_spec >>= return . NameAddr Nothing)
                   <?> "mailbox"
 
 -- |Parse an 'angle_addr', optionally prefaced with a 'display_name',
 -- and return the address.
 
-name_addr       :: CharParser a String
-name_addr       = do optional display_name
-                     angle_addr
+name_addr       :: CharParser a NameAddr
+name_addr       = do name <- optionMaybe display_name
+                     addr <- angle_addr
+                     return (NameAddr name addr)
                   <?> "name address"
 
 -- |Parse an 'angle_addr' or an 'obs_angle_addr' and return the address.
@@ -439,7 +444,7 @@ angle_addr      = try (unfold (do char '<'
 --
 -- >    Right ["user1@example.org","user2@example.org"]
 
-group           :: CharParser a [String]
+group           :: CharParser a [NameAddr]
 group           = do display_name
                      char ':'
                      r <- option [] mailbox_list
@@ -449,19 +454,20 @@ group           = do display_name
 
 -- |Parse and return a 'phrase'.
 
-display_name    :: CharParser a [String]
-display_name    = phrase <?> "display name"
+display_name    :: CharParser a String
+display_name    = phrase >>= return . concat . intersperse " "
+                  <?> "display name"
 
 -- |Parse a list of 'mailbox' addresses, every two addresses being
 -- separated by a comma, and return the list of found address(es).
 
-mailbox_list    :: CharParser a [String]
+mailbox_list    :: CharParser a [NameAddr]
 mailbox_list    = sepBy mailbox (char ',') <?> "mailbox list"
 
 -- |Parse a list of 'address' addresses, every two addresses being
 -- separated by a comma, and return the list of found address(es).
 
-address_list    :: CharParser a [String]
+address_list    :: CharParser a [NameAddr]
 address_list    = do { r <-sepBy address (char ','); return (concat r) }
                   <?> "address list"
 
@@ -574,13 +580,13 @@ body            = do r1 <- many (try (do line <- many text
 -- of the corresponding parser.
 
 data Field      = OptionalField       String String
-                | From                [String]
-                | Sender              String
+                | From                [NameAddr]
+                | Sender              NameAddr
                 | ReturnPath          String
-                | ReplyTo             [String]
-                | To                  [String]
-                | Cc                  [String]
-                | Bcc                 [String]
+                | ReplyTo             [NameAddr]
+                | To                  [NameAddr]
+                | Cc                  [NameAddr]
+                | Bcc                 [NameAddr]
                 | MessageID           String
                 | InReplyTo           [String]
                 | References          [String]
@@ -589,13 +595,13 @@ data Field      = OptionalField       String String
                 | Keywords            [[String]]
                 | Date                CalendarTime
                 | ResentDate          CalendarTime
-                | ResentFrom          [String]
-                | ResentSender        String
-                | ResentTo            [String]
-                | ResentCc            [String]
-                | ResentBcc           [String]
+                | ResentFrom          [NameAddr]
+                | ResentSender        NameAddr
+                | ResentTo            [NameAddr]
+                | ResentCc            [NameAddr]
+                | ResentBcc           [NameAddr]
                 | ResentMessageID     String
-                | ResentReplyTo       [String]
+                | ResentReplyTo       [NameAddr]
                 | Received            ([(String,String)], CalendarTime)
                 | ObsReceived         [(String,String)]
                 deriving (Show)
@@ -654,19 +660,19 @@ orig_date       = header "Date" date_time
 -- |Parse a \"@From:@\" header line and return the 'mailbox_list'
 -- address(es) contained in it.
 
-from            :: CharParser a [String]
+from            :: CharParser a [NameAddr]
 from            = header "From" mailbox_list
 
 -- |Parse a \"@Sender:@\" header line and return the 'mailbox' address
 -- contained in it.
 
-sender          :: CharParser a String
+sender          :: CharParser a NameAddr
 sender          = header "Sender" mailbox
 
 -- |Parse a \"@Reply-To:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-reply_to        :: CharParser a [String]
+reply_to        :: CharParser a [NameAddr]
 reply_to        = header "Reply-To" address_list
 
 
@@ -675,19 +681,19 @@ reply_to        = header "Reply-To" address_list
 -- |Parse a \"@To:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-to              :: CharParser a [String]
+to              :: CharParser a [NameAddr]
 to              = header "To" address_list
 
 -- |Parse a \"@Cc:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-cc              :: CharParser a [String]
+cc              :: CharParser a [NameAddr]
 cc              = header "Cc" address_list
 
 -- |Parse a \"@Bcc:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-bcc             :: CharParser a [String]
+bcc             :: CharParser a [NameAddr]
 bcc             = header "Bcc" (try address_list <|> do { optional cfws; return [] })
 
 -- ** Identification fields (section 3.6.4)
@@ -798,33 +804,33 @@ resent_date     = header "Resent-Date" date_time
 -- |Parse a \"@Resent-From:@\" header line and return the 'mailbox_list'
 -- address(es) contained in it.
 
-resent_from     :: CharParser a [String]
+resent_from     :: CharParser a [NameAddr]
 resent_from     = header "Resent-From" mailbox_list
 
 
 -- |Parse a \"@Resent-Sender:@\" header line and return the 'mailbox_list'
 -- address(es) contained in it.
 
-resent_sender   :: CharParser a String
+resent_sender   :: CharParser a NameAddr
 resent_sender   = header "Resent-Sender" mailbox
 
 
 -- |Parse a \"@Resent-To:@\" header line and return the 'mailbox'
 -- address contained in it.
 
-resent_to       :: CharParser a [String]
+resent_to       :: CharParser a [NameAddr]
 resent_to       = header "Resent-To" address_list
 
 -- |Parse a \"@Resent-Cc:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-resent_cc       :: CharParser a [String]
+resent_cc       :: CharParser a [NameAddr]
 resent_cc       = header "Resent-Cc" address_list
 
 -- |Parse a \"@Resent-Bcc:@\" header line and return the 'address_list'
 -- address(es) contained in it. (This list may be empty.)
 
-resent_bcc      :: CharParser a [String]
+resent_bcc      :: CharParser a [NameAddr]
 resent_bcc      = header "Resent-Bcc" (    try address_list
                                        <|> do optional cfws
                                               return []
@@ -1154,12 +1160,12 @@ obs_domain      = do r1 <- atom
 --
 -- Strange, isn't it?
 
-obs_mbox_list   :: CharParser a [String]
-obs_mbox_list   = do r1 <- many1 (try (do r <- option [] mailbox
+obs_mbox_list   :: CharParser a [NameAddr]
+obs_mbox_list   = do r1 <- many1 (try (do r <- optionMaybe mailbox
                                           unfold $ char ','
                                           return r))
-                     r2 <- option [] mailbox
-                     return (filter (/=[]) (r1 ++ [r2]))
+                     r2 <- optionMaybe mailbox
+                     return [x | Just x <- r1 ++ [r2]]
                   <?> "obsolete syntax for a list of mailboxes"
 
 -- |This parser is identical to 'obs_mbox_list' but parses a list of
@@ -1168,14 +1174,14 @@ obs_mbox_list   = do r1 <- many1 (try (do r <- option [] mailbox
 -- parser will return a simple list of addresses; the grouping
 -- information is lost.
 
-obs_addr_list   :: CharParser a [String]
-obs_addr_list   = do r1 <- many1 (try (do r <- option [] address
+obs_addr_list   :: CharParser a [NameAddr]
+obs_addr_list   = do r1 <- many1 (try (do r <- optionMaybe address
                                           optional cfws
                                           char ','
                                           optional cfws
-                                          return (concat r)))
-                     r2 <- option [] address
-                     return (filter (/=[]) (r1 ++ r2))
+                                          return r))
+                     r2 <- optionMaybe address
+                     return (concat [x | Just x <- r1 ++ [r2]])
                   <?> "obsolete syntax for a list of addresses"
 
 
@@ -1224,19 +1230,19 @@ obs_orig_date   = obs_header "Date" date_time
 -- |Parse a 'from' header line but allow for the obsolete
 -- folding syntax.
 
-obs_from        :: CharParser a [String]
+obs_from        :: CharParser a [NameAddr]
 obs_from        = obs_header "From" mailbox_list
 
 -- |Parse a 'sender' header line but allow for the obsolete
 -- folding syntax.
 
-obs_sender      :: CharParser a String
+obs_sender      :: CharParser a NameAddr
 obs_sender      = obs_header "Sender" mailbox
 
 -- |Parse a 'reply_to' header line but allow for the obsolete
 -- folding syntax.
 
-obs_reply_to    :: CharParser a [String]
+obs_reply_to    :: CharParser a [NameAddr]
 obs_reply_to    = obs_header "Reply-To" mailbox_list
 
 
@@ -1245,19 +1251,19 @@ obs_reply_to    = obs_header "Reply-To" mailbox_list
 -- |Parse a 'to' header line but allow for the obsolete
 -- folding syntax.
 
-obs_to          :: CharParser a [String]
+obs_to          :: CharParser a [NameAddr]
 obs_to          = obs_header "To" address_list
 
 -- |Parse a 'cc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_cc          :: CharParser a [String]
+obs_cc          :: CharParser a [NameAddr]
 obs_cc          = obs_header "Cc" address_list
 
 -- |Parse a 'bcc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_bcc         :: CharParser a [String]
+obs_bcc         :: CharParser a [NameAddr]
 obs_bcc         = header "Bcc" (    try address_list
                                     <|> do { optional cfws; return [] }
                                )
@@ -1329,13 +1335,13 @@ obs_keywords    = obs_header "Keywords" obs_phrase_list
 -- |Parse a 'resent_from' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_from :: CharParser a [String]
+obs_resent_from :: CharParser a [NameAddr]
 obs_resent_from = obs_header "Resent-From" mailbox_list
 
 -- |Parse a 'resent_sender' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_send :: CharParser a String
+obs_resent_send :: CharParser a NameAddr
 obs_resent_send = obs_header "Resent-Sender" mailbox
 
 -- |Parse a 'resent_date' header line but allow for the obsolete
@@ -1347,19 +1353,19 @@ obs_resent_date = obs_header "Resent-Date" date_time
 -- |Parse a 'resent_to' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_to   :: CharParser a [String]
+obs_resent_to   :: CharParser a [NameAddr]
 obs_resent_to   = obs_header "Resent-To" mailbox_list
 
 -- |Parse a 'resent_cc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_cc   :: CharParser a [String]
+obs_resent_cc   :: CharParser a [NameAddr]
 obs_resent_cc   = obs_header "Resent-Cc" mailbox_list
 
 -- |Parse a 'resent_bcc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_bcc  :: CharParser a [String]
+obs_resent_bcc  :: CharParser a [NameAddr]
 obs_resent_bcc  = obs_header "Bcc" (    try address_list
                                     <|> do { optional cfws; return [] }
                                    )
@@ -1373,7 +1379,7 @@ obs_resent_mid  = obs_header "Resent-Message-ID" msg_id
 -- |Parse a @Resent-Reply-To@ header line but allow for the
 -- obsolete folding syntax.
 
-obs_resent_reply :: CharParser a [String]
+obs_resent_reply :: CharParser a [NameAddr]
 obs_resent_reply = obs_header "Resent-Reply-To" address_list
 
 
