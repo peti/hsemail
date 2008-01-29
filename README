@@ -1,7 +1,7 @@
 Parsers for the Internet Message Standard
 =========================================
 
-:Latest Release: hsemail-1.0.tar.gz_
+:Latest Release: hsemail-1.1.tar.gz_
 :Darcs:          darcs_ get --partial http://cryp.to/hsemail/
 
 Synopsis
@@ -32,7 +32,7 @@ See Also
 Copyleft
 --------
 
-  Copyright (c) 2007 Peter Simons <simons@cryp.to>. All rights
+  Copyright (c) 2008 Peter Simons <simons@cryp.to>. All rights
   reserved. This software is released under `BSD-style license
   <LICENSE>`_.
 
@@ -44,7 +44,7 @@ Copyleft
 
 .. _darcs: http://abridgegame.org/darcs/
 
-.. _hsemail-1.0.tar.gz: http://cryp.to/hsemail/hsemail-1.0.tar.gz
+.. _hsemail-1.1.tar.gz: http://cryp.to/hsemail/hsemail-1.1.tar.gz
 
 .. _Reference Documentation: docs/index.html
 
