@@ -1,6 +1,6 @@
 {- |
    Module      :  Text.ParserCombinators.Parsec.Rfc2822
-   Copyright   :  (c) 2007 by Peter Simons
+   Copyright   :  (c) 2008 Peter Simons
    License     :  BSD3
 
    Maintainer  :  simons@cryp.to
@@ -11,26 +11,26 @@
    RFC2822, \"Internet Message Format\",
    <http://www.faqs.org/rfcs/rfc2822.html>.
 
-   /Please note:/ The module is a mess. I keep it around as
-   a reminder that it needs to be rewritten, mostly.
-   Nevertheless, some parsers -- like 'date_time', for
-   example -- are genuinely useful.
+   /Please note:/ The module is not particularly well tested.
 -}
 
 module Text.ParserCombinators.Parsec.Rfc2822 where
 
-import Text.ParserCombinators.Parsec
+import System.Time
 import Data.Char ( ord )
 import Data.List ( intersperse )
-import System.Time
-import Text.ParserCombinators.Parsec.Rfc2234
-        hiding ( quoted_pair, quoted_string )
-
-data NameAddr = NameAddr { nameAddr_name :: Maybe String
-                         , nameAddr_addr :: String }
-                deriving (Show,Eq)
+import Control.Monad ( liftM )
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
 
 -- * Useful parser combinators
+
+-- |Return @Nothing@ if the given parser doesn't match. This
+-- combinator is included in the latest parsec distribution as
+-- @optionMaybe@, but ghc-6.6.1 apparently doesn't have it.
+
+maybeOption    :: GenParser tok st a -> GenParser tok st (Maybe a)
+maybeOption p   = option Nothing (liftM Just p)
 
 -- |@unfold@ @=@ @between (optional cfws) (optional cfws)@
 
@@ -399,6 +399,14 @@ zone            = (    do char '+'
 
 -- * Address Specification (section 3.4)
 
+-- |A NameAddr is composed of an optional realname a mandatory
+-- e-mail 'address'.
+
+data NameAddr = NameAddr { nameAddr_name :: Maybe String
+                         , nameAddr_addr :: String
+                         }
+                deriving (Show,Eq)
+
 -- |Parse a single 'mailbox' or an address 'group' and return the
 -- address(es).
 
@@ -417,7 +425,7 @@ mailbox         = try name_addr <|> (addr_spec >>= return . NameAddr Nothing)
 -- and return the address.
 
 name_addr       :: CharParser a NameAddr
-name_addr       = do name <- optionMaybe display_name
+name_addr       = do name <- maybeOption display_name
                      addr <- angle_addr
                      return (NameAddr name addr)
                   <?> "name address"
@@ -1161,10 +1169,10 @@ obs_domain      = do r1 <- atom
 -- Strange, isn't it?
 
 obs_mbox_list   :: CharParser a [NameAddr]
-obs_mbox_list   = do r1 <- many1 (try (do r <- optionMaybe mailbox
+obs_mbox_list   = do r1 <- many1 (try (do r <- maybeOption mailbox
                                           unfold $ char ','
                                           return r))
-                     r2 <- optionMaybe mailbox
+                     r2 <- maybeOption mailbox
                      return [x | Just x <- r1 ++ [r2]]
                   <?> "obsolete syntax for a list of mailboxes"
 
@@ -1175,12 +1183,12 @@ obs_mbox_list   = do r1 <- many1 (try (do r <- optionMaybe mailbox
 -- information is lost.
 
 obs_addr_list   :: CharParser a [NameAddr]
-obs_addr_list   = do r1 <- many1 (try (do r <- optionMaybe address
+obs_addr_list   = do r1 <- many1 (try (do r <- maybeOption address
                                           optional cfws
                                           char ','
                                           optional cfws
                                           return r))
-                     r2 <- optionMaybe address
+                     r2 <- maybeOption address
                      return (concat [x | Just x <- r1 ++ [r2]])
                   <?> "obsolete syntax for a list of addresses"
 
