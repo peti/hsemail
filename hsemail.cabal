@@ -1,5 +1,5 @@
 Name:           hsemail
-Version:        1.1
+Version:        1.2
 Author:         Peter Simons <simons@cryp.to>
 License:        BSD3
 License-file:   LICENSE
@@ -10,8 +10,7 @@ Description:    Parsers for the syntax defined in RFC2821 and 2822
 Category:       Parsing
 Build-Depends:  base, mtl, parsec, old-time
 Build-Type:     Simple
-Tested-With:    GHC==6.8.2
-GHC-Options:    -Wall -O2
+GHC-Options:    -Wall
 Exposed-Modules:
     Text.ParserCombinators.Parsec.Rfc2234,
     Text.ParserCombinators.Parsec.Rfc2821,
