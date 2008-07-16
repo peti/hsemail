@@ -213,11 +213,11 @@ utext           = no_ws_ctl <|> satisfy (\c -> ord c `elem` [33..126])
 -- follows the actual 'utext' is /included/ in the returned string.
 
 unstructured    :: CharParser a String
-unstructured    = do r1 <- many (do r1 <- option [] fws
-                                    r2 <- utext
-                                    return (r1 ++ [r2]))
-                     r2 <- option [] fws
-                     return (concat r1 ++ r2)
+unstructured    = do r1 <- option [] fws
+                     r2 <- many (do r1 <- utext
+                                    r2 <- option [] fws
+                                    return (r1 : r2))
+                     return (r1 ++ concat r2)
                   <?> "unstructured text"
 
 
