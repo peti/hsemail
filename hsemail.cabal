@@ -1,24 +1,35 @@
-Name:           hsemail
-Version:        1.3
-Author:         Peter Simons <simons@cryp.to>
-License:        BSD3
-License-file:   LICENSE
-Maintainer:     simons@cryp.to
-Homepage:       http://cryp.to/hsemail/
-Synopsis:       Internet Message Parsers
-Description:    Parsers for the syntax defined in RFC2821 and 2822
-Category:       Parsing
-Build-Depends:  base, mtl, parsec, old-time
-Build-Type:     Simple
-GHC-Options:    -Wall
-Exposed-Modules:
-    Text.ParserCombinators.Parsec.Rfc2234,
-    Text.ParserCombinators.Parsec.Rfc2821,
-    Text.ParserCombinators.Parsec.Rfc2822
-Data-files:
-    README,
-    prologue.txt,
-    example/message-test.hs,
-    example/message-test.input,
-    example/smtp-test.hs,
-    example/smtp-test.input
+Name:                   hsemail
+Version:                1.4
+Copyright:              (c) 2004-2010 Peter Simons
+License:                BSD3
+License-File:           LICENSE
+Author:                 Peter Simons <simons@cryp.to>
+Maintainer:             Peter Simons <simons@cryp.to>
+Homepage:               http://gitorious.org/hsemail
+Category:               Parsing
+Synopsis:               Internet Message Parsers
+Description:            Parsers for the syntax defined in RFC2821 and 2822
+Cabal-Version:          >= 1.6
+Build-Type:             Simple
+Tested-With:            GHC == 6.12.1
+
+Extra-Source-Files:     example/message-test.hs
+                        example/message-test.input
+                        example/smtp-test.hs
+                        example/smtp-test.input
+
+Source-Repository this
+  Tag:                  v1.4
+  Type:                 git
+  Location:             git://gitorious.org/hsemail/mainline.git
+
+Source-Repository head
+  Type:                 git
+  Location:             git://gitorious.org/hsemail/mainline.git
+
+Library
+  Build-Depends:        base >= 3 && < 5, mtl, parsec, old-time
+  Exposed-Modules:      Text.ParserCombinators.Parsec.Rfc2234
+                        Text.ParserCombinators.Parsec.Rfc2821
+                        Text.ParserCombinators.Parsec.Rfc2822
+  Ghc-Options:          -Wall

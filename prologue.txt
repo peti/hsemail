@@ -1,3 +1,0 @@
-This package provides a myriad parsers for Internet messages
-as defined in RFC2234, RFC2821, and RFC2822. That would be
-e-mail, mostly.
