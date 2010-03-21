@@ -542,9 +542,8 @@ dtext           = no_ws_ctl
 -- represented in the 'Field' data type, and a message body, which may
 -- be empty.
 
-data Message
-    = Message [Field] String
-      deriving (Show)
+data GenericMessage a = Message [Field] a
+type Message = GenericMessage String
 
 -- |Parse a complete message as defined by this RFC and it broken down
 -- into the separate header fields and the message body. Header lines,
