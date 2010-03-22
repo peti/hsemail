@@ -1,9 +1,9 @@
 Name:                   hsemail
-Version:                1.4
+Version:                1.5
 Copyright:              (c) 2004-2010 Peter Simons
 License:                BSD3
 License-File:           LICENSE
-Author:                 Peter Simons <simons@cryp.to>
+Author:                 Peter Simons <simons@cryp.to>, Gero Kriependorf <gero@physra.com>, Marty Pauley <marty@kasei.com>
 Maintainer:             Peter Simons <simons@cryp.to>
 Homepage:               http://gitorious.org/hsemail
 Category:               Parsing
@@ -17,11 +17,6 @@ Extra-Source-Files:     example/message-test.hs
                         example/message-test.input
                         example/smtp-test.hs
                         example/smtp-test.input
-
-Source-Repository this
-  Tag:                  v1.4
-  Type:                 git
-  Location:             git://gitorious.org/hsemail/mainline.git
 
 Source-Repository head
   Type:                 git
