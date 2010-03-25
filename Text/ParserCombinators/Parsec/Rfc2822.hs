@@ -542,7 +542,7 @@ dtext           = no_ws_ctl
 -- represented in the 'Field' data type, and a message body, which may
 -- be empty.
 
-data GenericMessage a = Message [Field] a
+data GenericMessage a = Message [Field] a deriving Show
 type Message = GenericMessage String
 
 -- |Parse a complete message as defined by this RFC and it broken down
