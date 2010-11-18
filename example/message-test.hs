@@ -15,7 +15,7 @@ main = do
 -- Make sure all lines are terminated by CRLF.
 
 fixEol :: String -> String
-fixEol ('\r':'\n':xs)   = '\r' : '\n' : (fixEol xs)
-fixEol ('\n':xs)        = '\r' : '\n' : (fixEol xs)
-fixEol (x:xs)           = x : (fixEol xs)
+fixEol ('\r':'\n':xs)   = '\r' : '\n' : fixEol xs
+fixEol ('\n':xs)        = '\r' : '\n' : fixEol xs
+fixEol (x:xs)           = x : fixEol xs
 fixEol []               = []

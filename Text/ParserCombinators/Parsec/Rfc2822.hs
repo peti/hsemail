@@ -18,7 +18,7 @@ module Text.ParserCombinators.Parsec.Rfc2822 where
 
 import System.Time
 import Data.Char ( ord )
-import Data.List ( intersperse )
+import Data.List ( intercalate )
 import Control.Monad ( liftM )
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
@@ -80,7 +80,7 @@ specials        = oneOf "()<>[]:;@,.\\\""   <?> "one of ()<>[]:;@,.\\\""
 -- backslash and the actual content.
 
 quoted_pair     :: CharParser a String
-quoted_pair     = do { char '\\'; r <- text; return ['\\',r] }
+quoted_pair     = do { _ <- char '\\'; r <- text; return ['\\',r] }
                   <?> "quoted pair"
 
 
@@ -113,10 +113,10 @@ ctext           = no_ws_ctl <|> satisfy (\c -> ord c `elem` ([33..39] ++ [42..91
 -- 'quoted_pair's, and 'fws' between brackets. Comments may nest.
 
 comment         :: CharParser a String
-comment         = do char '('
+comment         = do _ <- char '('
                      r1 <- many ccontent
                      r2 <- option [] fws
-                     char ')'
+                     _ <- char ')'
                      return ("(" ++ concat r1 ++ r2 ++ ")")
                   <?> "comment"
     where
@@ -153,8 +153,7 @@ dot_atom        = unfold (dot_atom_text <?> "dot atom")
 -- |Match two or more 'atext's interspersed by dots.
 
 dot_atom_text   :: CharParser a String
-dot_atom_text   = do r <- sepBy1 (many1 atext) (char '.')
-                     return (concat (intersperse "." r))
+dot_atom_text   = fmap (intercalate ".") (sepBy1 (many1 atext) (char '.'))
                   <?> "dot atom content"
 
 
@@ -177,12 +176,12 @@ qcontent        = many1 qtext <|> quoted_pair
 -- preceeding or following the \"atom\" is skipped automatically.
 
 quoted_string   :: CharParser a String
-quoted_string   = unfold (do dquote
+quoted_string   = unfold (do _ <- dquote
                              r1 <- many (do r1 <- option [] fws
                                             r2 <- qcontent
                                             return (r1 ++ r2))
                              r2 <- option [] fws
-                             dquote
+                             _ <- dquote
                              return ("\"" ++ concat r1 ++ r2 ++ "\""))
                   <?> "quoted string"
 
@@ -214,9 +213,9 @@ utext           = no_ws_ctl <|> satisfy (\c -> ord c `elem` [33..126])
 
 unstructured    :: CharParser a String
 unstructured    = do r1 <- option [] fws
-                     r2 <- many (do r1 <- utext
-                                    r2 <- option [] fws
-                                    return (r1 : r2))
+                     r2 <- many (do r3 <- utext
+                                    r4 <- option [] fws
+                                    return (r3 : r4))
                      return (r1 ++ concat r2)
                   <?> "unstructured text"
 
@@ -252,10 +251,10 @@ unstructured    = do r1 <- option [] fws
 
 date_time       :: CharParser a CalendarTime
 date_time       = do wd <- option Monday (try (do wd <- day_of_week
-                                                  char ','
+                                                  _ <- char ','
                                                   return wd))
                      (y,m,d) <- date
-                     fws
+                     _ <- fws
                      (td,z) <- time
                      optional cfws
                      return (CalendarTime y m d (tdHour td) (tdMin td) (tdSec td) 0 wd 0 "" z False)
@@ -339,7 +338,7 @@ day             =  try (do { optional fws; r <- manyNtoM 1 2 digit; return (read
 
 time            :: CharParser a (TimeDiff,Int)
 time            = do t <- time_of_day
-                     fws
+                     _ <- fws
                      z <- zone
                      return (t,z)
                   <?> "time and zone specification"
@@ -349,9 +348,9 @@ time            = do t <- time_of_day
 
 time_of_day     :: CharParser a TimeDiff
 time_of_day     = do h <- hour
-                     char ':'
+                     _ <- char ':'
                      m <- minute
-                     s <- option 0 (do { char ':'; second } )
+                     s <- option 0 (do { _ <- char ':'; second } )
                      return (TimeDiff 0 0 0 h m s 0)
                   <?> "time specification"
 
@@ -384,11 +383,11 @@ second          = do r <- count 2 digit
 -- seconds as an integer. 'obs_zone' is matched as well.
 
 zone            :: CharParser a Int
-zone            = (    do char '+'
+zone            = (    do _ <- char '+'
                           h <- hour
                           m <- minute
                           return (((h*60)+m)*60)
-                   <|> do char '-'
+                   <|> do _ <- char '-'
                           h <- hour
                           m <- minute
                           return (-((h*60)+m)*60)
@@ -418,7 +417,7 @@ address         = try (do { r <- mailbox; return [r] }) <|> group
 -- address.
 
 mailbox         :: CharParser a NameAddr
-mailbox         = try name_addr <|> (addr_spec >>= return . NameAddr Nothing)
+mailbox         = try name_addr <|> fmap (NameAddr Nothing) addr_spec
                   <?> "mailbox"
 
 -- |Parse an 'angle_addr', optionally prefaced with a 'display_name',
@@ -433,9 +432,9 @@ name_addr       = do name <- maybeOption display_name
 -- |Parse an 'angle_addr' or an 'obs_angle_addr' and return the address.
 
 angle_addr      :: CharParser a String
-angle_addr      = try (unfold (do char '<'
+angle_addr      = try (unfold (do _ <- char '<'
                                   r <- addr_spec
-                                  char '>'
+                                  _ <- char '>'
                                   return r)
                        <?> "angle address"
                       )
@@ -453,17 +452,17 @@ angle_addr      = try (unfold (do char '<'
 -- >    Right ["user1@example.org","user2@example.org"]
 
 group           :: CharParser a [NameAddr]
-group           = do display_name
-                     char ':'
+group           = do _ <- display_name
+                     _ <- char ':'
                      r <- option [] mailbox_list
-                     unfold $ char ';'
+                     _ <- unfold $ char ';'
                      return r
                   <?> "address group"
 
 -- |Parse and return a 'phrase'.
 
 display_name    :: CharParser a String
-display_name    = phrase >>= return . concat . intersperse " "
+display_name    = fmap unwords phrase
                   <?> "display name"
 
 -- |Parse a list of 'mailbox' addresses, every two addresses being
@@ -488,7 +487,7 @@ address_list    = do { r <-sepBy address (char ','); return (concat r) }
 
 addr_spec       :: CharParser a String
 addr_spec       = do r1 <- local_part
-                     char '@'
+                     _ <- char '@'
                      r2 <- domain
                      return (r1 ++ "@" ++ r2)
                   <?> "address specification"
@@ -512,10 +511,10 @@ domain          = dot_atom <|> domain_literal
 -- character. The complete string is returned verbatim.
 
 domain_literal  :: CharParser a String
-domain_literal  = unfold (do char '['
+domain_literal  = unfold (do _ <- char '['
                              r <- many $ do { optional fws; dcontent }
                              optional fws
-                             char ']'
+                             _ <- char ']'
                              return ("[" ++ concat r ++ "]"))
                   <?> "domain literal"
 
@@ -563,9 +562,7 @@ type Message = GenericMessage String
 
 message         :: CharParser a Message
 message         = do f <- fields
-                     b <- option [] (do crlf
-                                        b <- body
-                                        return b)
+                     b <- option [] (do _ <- crlf; body)
                      return (Message f b)
 
 -- |This parser will return a message body as specified by this RFC;
@@ -728,11 +725,11 @@ references      = header "References" (many1 msg_id)
 -- and whitespace.
 
 msg_id          :: CharParser a String
-msg_id          = unfold (do char '<'
+msg_id          = unfold (do _ <- char '<'
                              idl <- id_left
-                             char '@'
+                             _ <- char '@'
                              idr <- id_right
-                             char '>'
+                             _ <- char '>'
                              return ("<" ++ idl ++ "@" ++ idr ++ ">"))
                   <?> "message ID"
 
@@ -757,9 +754,9 @@ id_right        = dot_atom_text <|> no_fold_literal
 -- 'msg_id'.
 
 no_fold_quote   :: CharParser a String
-no_fold_quote   = do dquote
+no_fold_quote   = do _ <- dquote
                      r <- many (many1 qtext <|> quoted_pair)
-                     dquote
+                     _ <- dquote
                      return ("\"" ++ concat r ++ "\"")
                   <?> "non-folding quoted string"
 
@@ -768,10 +765,9 @@ no_fold_quote   = do dquote
 -- 'msg_id'.
 
 no_fold_literal :: CharParser a String
-no_fold_literal = do char '['
+no_fold_literal = do _ <- char '['
                      r <- many (many1 dtext <|> quoted_pair)
-                     char ']'
-                     return ("\"" ++ concat r ++ "\"")
+                     _ <- char ']'
                      return ("[" ++ concat r ++ "]")
                   <?> "non-folding domain literal"
 
@@ -794,9 +790,7 @@ comments        = header "Comments" unstructured
 
 keywords        :: CharParser a [[String]]
 keywords        = header "Keywords" (do r1 <- phrase
-                                        r2 <- many (do char ','
-                                                       r <- phrase
-                                                       return r)
+                                        r2 <- many (do _ <- char ','; phrase)
                                         return (r1:r2))
 
 
@@ -857,9 +851,9 @@ return_path     :: CharParser a String
 return_path     = header "Return-Path:" path
 
 path            :: CharParser a String
-path            = unfold (    do char '<'
-                                 r <- choice [ try addr_spec, do { cfws; return [] } ]
-                                 char '>'
+path            = unfold (    do _ <- char '<'
+                                 r <- choice [ try addr_spec, do { _ <- cfws; return [] } ]
+                                 _ <- char '>'
                                  return ("<" ++ r ++ ">")
                           <|> obs_path
                          )
@@ -867,7 +861,7 @@ path            = unfold (    do char '<'
 
 received        :: CharParser a ([(String,String)], CalendarTime)
 received        = header "Received" (do r1 <- name_val_list
-                                        char ';'
+                                        _ <- char ';'
                                         r2 <- date_time
                                         return (r1,r2))
 
@@ -878,7 +872,7 @@ name_val_list   = do optional cfws
 
 name_val_pair   :: CharParser a (String,String)
 name_val_pair   = do r1 <- item_name
-                     cfws
+                     _ <- cfws
                      r2 <- item_value
                      return (r1,r2)
                   <?> "a name/value pair"
@@ -906,9 +900,9 @@ item_value      = choice [ try (do { r <- many1 angle_addr; return (concat r) })
 
 optional_field  :: CharParser a (String,String)
 optional_field  = do n <- field_name
-                     char ':'
+                     _ <- char ':'
                      b <- unstructured
-                     crlf
+                     _ <- crlf
                      return (n,b)
                   <?> "optional (unspecified) header line"
 
@@ -934,7 +928,7 @@ ftext           = satisfy (\c -> ord c `elem` ([33..57] ++ [59..126]))
 -- character.
 
 obs_qp          :: CharParser a String
-obs_qp          = do char '\\'
+obs_qp          = do _ <- char '\\'
                      c <- satisfy (\c -> ord c `elem` [0..127])
                      return ['\\',c]
                   <?> "any quoted US-ASCII character"
@@ -973,9 +967,9 @@ obs_phrase      :: CharParser a [String]
 obs_phrase      = do r1 <- word
                      r2 <- many $ choice [ word
                                          , string "."
-                                         , do { cfws; return [] }
+                                         , do { _ <- cfws; return [] }
                                          ]
-                     return (r1 : (filter (/=[]) r2))
+                     return (r1 : filter (/=[]) r2)
 
 -- |Match a  \"phrase list\" syntax and return the list of 'String's
 -- that make up the phrase. In contrast to a 'phrase', the
@@ -984,7 +978,7 @@ obs_phrase      = do r1 <- word
 
 obs_phrase_list :: CharParser a [String]
 obs_phrase_list = do r1 <- many1 (do r <- option [] phrase
-                                     unfold $ char ','
+                                     _ <- unfold $ char ','
                                      return (filter (/=[]) r))
                      r2 <- option [] phrase
                      return (concat r1 ++ r2)
@@ -1066,9 +1060,9 @@ obs_zone        = choice [ mkZone "UT"  0
                          , do { r <- oneOf ['A'..'I']; return $ (ord r - 64) * 60*60 }  <?> "military zone spec"
                          , do { r <- oneOf ['K'..'M']; return $ (ord r - 65) * 60*60 }  <?> "military zone spec"
                          , do { r <- oneOf ['N'..'Y']; return $ -(ord r - 77) * 60*60 } <?> "military zone spec"
-                         , do { char 'Z'; return 0 }                                    <?> "military zone spec"
+                         , do { _ <- char 'Z'; return 0 }                               <?> "military zone spec"
                          ]
-    where mkZone n o  = try $ do { string n; return (o*60*60) }
+    where mkZone n o  = try $ do { _ <- string n; return (o*60*60) }
 
 
 -- * Obsolete Addressing (section 4.4)
@@ -1095,10 +1089,10 @@ obs_zone        = choice [ mkZone "UT"  0
 -- actual 'addr_spec' address.
 
 obs_angle_addr  :: CharParser a String
-obs_angle_addr  = unfold (do char '<'
+obs_angle_addr  = unfold (do _ <- char '<'
                              _ <- option [] obs_route
                              addr <- addr_spec
-                             char '>'
+                             _ <- char '>'
                              return addr)  -- TODO: route is lost here.
                   <?> "obsolete angle address"
 
@@ -1107,7 +1101,7 @@ obs_angle_addr  = unfold (do char '<'
 -- 'obs_domain_list' for the actual parsing.
 
 obs_route       :: CharParser a [String]
-obs_route       = unfold (do { r <- obs_domain_list; char ':'; return r })
+obs_route       = unfold (do { r <- obs_domain_list; _ <- char ':'; return r })
                   <?> "route of an obsolete angle address"
 
 -- |This parser parses a list of domain names, each of them prefaced
@@ -1115,11 +1109,11 @@ obs_route       = unfold (do { r <- obs_domain_list; char ':'; return r })
 -- 'domain's is returned - and may be empty.
 
 obs_domain_list :: CharParser a [String]
-obs_domain_list = do char '@'
+obs_domain_list = do _ <- char '@'
                      r1 <- domain
-                     r2 <- many (do cfws <|> string ","
+                     r2 <- many (do _ <- cfws <|> string ","
                                     optional cfws
-                                    char '@'
+                                    _ <- char '@'
                                     r <- domain
                                     return r)
                      return (r1 : r2)
@@ -1131,7 +1125,7 @@ obs_domain_list = do char '@'
 
 obs_local_part  :: CharParser a String
 obs_local_part  = do r1 <- word
-                     r2 <- many (do string "."
+                     r2 <- many (do _ <- string "."
                                     r <- word
                                     return ('.' : r))
                      return (r1 ++ concat r2)
@@ -1143,7 +1137,7 @@ obs_local_part  = do r1 <- word
 
 obs_domain      :: CharParser a String
 obs_domain      = do r1 <- atom
-                     r2 <- many (do string "."
+                     r2 <- many (do _ <- string "."
                                     r <- atom
                                     return ('.' : r))
                      return (r1 ++ concat r2)
@@ -1169,7 +1163,7 @@ obs_domain      = do r1 <- atom
 
 obs_mbox_list   :: CharParser a [NameAddr]
 obs_mbox_list   = do r1 <- many1 (try (do r <- maybeOption mailbox
-                                          unfold $ char ','
+                                          _ <- unfold $ char ','
                                           return r))
                      r2 <- maybeOption mailbox
                      return [x | Just x <- r1 ++ [r2]]
@@ -1184,7 +1178,7 @@ obs_mbox_list   = do r1 <- many1 (try (do r <- maybeOption mailbox
 obs_addr_list   :: CharParser a [NameAddr]
 obs_addr_list   = do r1 <- many1 (try (do r <- maybeOption address
                                           optional cfws
-                                          char ','
+                                          _ <- char ','
                                           optional cfws
                                           return r))
                      r2 <- maybeOption address
@@ -1288,7 +1282,7 @@ obs_message_id  = obs_header "Message-ID" msg_id
 -- folding and the obsolete phrase syntax.
 
 obs_in_reply_to :: CharParser a [String]
-obs_in_reply_to = obs_header "In-Reply-To" (do r <- many (    do {phrase; return [] }
+obs_in_reply_to = obs_header "In-Reply-To" (do r <- many (    do {_ <- phrase; return [] }
                                                           <|> msg_id
                                                          )
                                                return (filter (/=[]) r))
@@ -1297,7 +1291,7 @@ obs_in_reply_to = obs_header "In-Reply-To" (do r <- many (    do {phrase; return
 -- folding and the obsolete phrase syntax.
 
 obs_references  :: CharParser a [String]
-obs_references  = obs_header "References" (do r <- many (    do { phrase; return [] }
+obs_references  = obs_header "References" (do r <- many (    do { _ <- phrase; return [] }
                                                          <|> msg_id
                                                         )
                                               return (filter (/=[]) r))
@@ -1409,9 +1403,9 @@ obs_path        = obs_angle_addr
 
 obs_optional    :: CharParser a (String,String)
 obs_optional    = do n <- field_name
-                     many wsp
-                     char ':'
+                     _ <- many wsp
+                     _ <- char ':'
                      b <- unstructured
-                     crlf
+                     _ <- crlf
                      return (n,b)
                   <?> "optional (unspecified) header line"

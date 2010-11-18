@@ -9,5 +9,4 @@ import Text.ParserCombinators.Parsec.Rfc2821
 main :: IO ()
 main = do
   input <- getContents
-  mapM (print . parse smtpCmd "") [ l ++ "\r\n" | l <- lines input ]
-  return ()
+  mapM_ (print . parse smtpCmd "") [ l ++ "\r\n" | l <- lines input ]

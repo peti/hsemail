@@ -17,8 +17,7 @@ module Text.ParserCombinators.Parsec.Rfc2821 where
 import Control.Exception ( assert )
 import Control.Monad.State
 import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Error
-import Data.List ( intersperse )
+import Data.List ( intercalate )
 import Data.Char ( toLower )
 import Text.ParserCombinators.Parsec.Rfc2234
 
@@ -83,8 +82,8 @@ handleSmtpCmd :: SmtpCmd -> SmtpdFSM
 handleSmtpCmd cmd = get >>= \st -> match st cmd
   where
   match :: SessionState -> SmtpCmd -> SmtpdFSM
-  match HaveQuit     _       = assert (False) (event Shutdown)
-  match HaveData     _       = assert (False) (trans (HaveData, StartData))
+  match HaveQuit     _       = assert False (event Shutdown)
+  match HaveData     _       = assert False (trans (HaveData, StartData))
   match    _  (WrongArg c _) = event (SyntaxErrorIn c)
   match    _        Quit     = trans (HaveQuit, Shutdown)
   match    _        Noop     = event SayOK
@@ -186,7 +185,7 @@ instance Show SmtpCmd where
 data Mailbox = Mailbox [String] String String
 
 instance Eq Mailbox where
-  lhs == rhs  =  (norm lhs) == (norm rhs)
+  lhs == rhs  =  norm lhs == norm rhs
     where
     norm (Mailbox rt lp hp) = (rt, lp, map toLower hp)
 
@@ -194,7 +193,7 @@ instance Show Mailbox where
   show (Mailbox [] [] []) = "<>"
   show (Mailbox [] "postmaster" []) = "<postmaster>"
   show (Mailbox p u d) = let
-    route = concat . (intersperse ",") . (map ((:) '@')) $ p
+    route = intercalate "," . map ((:) '@') $ p
     mbox  = u ++ "@" ++ d
     in if null route then "<" ++ mbox ++ ">"
                      else "<" ++ route ++ ":" ++ mbox ++ ">"
@@ -395,7 +394,7 @@ mailbox = p <?> "mailbox"
   where
   p = do
     r1 <- local_part
-    char '@'
+    _ <- char '@'
     r2 <- domain
     return (Mailbox [] r1 r2)
 
@@ -438,7 +437,7 @@ subdomain = p <?> "domain name"
   where
   p = do
     r <- many1 (alpha <|> digit <|> char '-')
-    if (last r == '-')
+    if last r == '-'
         then fail "subdomain must not end with hyphen"
         else return r
 
@@ -464,7 +463,7 @@ number = many1 digit
 -- or a 'quoted_string'.
 
 word :: CharParser st String
-word = (atom <|> (quoted_string >>= return . show))
+word = (atom <|> fmap show quoted_string)
        <?> "word or quoted-string"
 
 
@@ -491,7 +490,7 @@ fixCRLF      [ ]        = "\r\n"
 mkCmd0 :: String -> a -> CharParser st a
 mkCmd0 str cons = (do
   try (caseString str)
-  skipMany wsp >> crlf
+  _ <- skipMany wsp >> crlf
   return cons)                          <?> str
 
 -- |Construct a parser for a command with an argument, which
@@ -503,11 +502,11 @@ mkCmd1 :: String -> (a -> SmtpCmd) -> CharParser st a
        -> CharParser st SmtpCmd
 mkCmd1 str cons p = do
   try (caseString str)
-  wsp
+  _ <- wsp
   input <- getInput
   st <- getState
   let eol = skipMany wsp >> crlf
-      p'  = (between (many wsp) eol p)  <?> str
+      p'  = between (many wsp) eol p <?> str
       r   = runParser p' st "" input
   case r of
     Left e  -> return (WrongArg str e)
@@ -519,6 +518,4 @@ mkCmd1 str cons p = do
 
 tokenList :: CharParser st String -> Char
           -> CharParser st String
-tokenList p c = do
-  xs <- sepBy1 p (char c)
-  return (concat (intersperse [c] xs))
+tokenList p c = fmap (intercalate [c]) (sepBy1 p (char c))

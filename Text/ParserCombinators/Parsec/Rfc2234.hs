@@ -48,7 +48,7 @@ manyNtoM n m p
     | n < 0      = return []
     | n > m      = return []
     | n == m     = count n p
-    | n == 0     = do foldr (<|>) (return []) (map (\x -> try $ count x p) (reverse [1..m]))
+    | n == 0     = foldr (<|>) (return []) (map (\x -> try $ count x p) (reverse [1..m]))
     | otherwise  = liftM2 (++) (count n p) (manyNtoM 0 (m-n) p)
 
 -- |Helper function to generate 'Parser'-based instances for
@@ -164,7 +164,7 @@ wsp              = sp <|> htab    <?> "white-space"
 -- LF) may be quoted.
 
 quoted_pair     :: CharParser st String
-quoted_pair      = do char '\\'
+quoted_pair      = do _ <- char '\\'
                       r <- noneOf "\r\n"
                       return ['\\',r]
                    <?> "quoted pair"
@@ -174,11 +174,11 @@ quoted_pair      = do char '\\'
 -- LF are not allowed at all.
 
 quoted_string   :: CharParser st String
-quoted_string    = do dquote
+quoted_string    = do _ <- dquote
                       r <- many qcont
-                      dquote
+                      _ <- dquote
                       return ("\"" ++ concat r ++ "\"")
                    <?> "quoted string"
   where
   qtext = noneOf "\\\"\r\n"
-  qcont = (many1 qtext) <|> (quoted_pair)
+  qcont = many1 qtext <|> quoted_pair
