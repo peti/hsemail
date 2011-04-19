@@ -1,6 +1,6 @@
 Name:                   hsemail
 Version:                1.7.1
-Copyright:              (c) 2004-2010 Peter Simons
+Copyright:              (c) 2004-2011 Peter Simons
 License:                BSD3
 License-File:           LICENSE
 Author:                 Peter Simons <simons@cryp.to>, Gero Kriependorf <gero-dev@physra.net>, Marty Pauley <marty@kasei.com>
@@ -11,7 +11,7 @@ Synopsis:               Internet Message Parsers
 Description:            Parsers for the syntax defined in RFC2821 and 2822
 Cabal-Version:          >= 1.6
 Build-Type:             Simple
-Tested-With:            GHC == 6.12.3
+Tested-With:            GHC == 7.0.2
 
 Extra-Source-Files:     example/message-test.hs
                         example/message-test.input
