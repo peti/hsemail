@@ -191,7 +191,7 @@ quoted_string   = unfold (do _ <- dquote
 -- |Match either 'atom' or 'quoted_string'.
 
 word            :: CharParser a String
-word            = atom <|> quoted_string     <?> "word"
+word            = unfold (atom <|> quoted_string)     <?> "word"
 
 -- |Match either one or more 'word's or an 'obs_phrase'.
 
