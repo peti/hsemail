@@ -1,6 +1,6 @@
 {- |
    Module      :  Text.ParserCombinators.Parsec.Rfc2822
-   Copyright   :  (c) 2008 Peter Simons
+   Copyright   :  (c) 2012 Peter Simons
    License     :  BSD3
 
    Maintainer  :  simons@cryp.to
