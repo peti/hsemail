@@ -10,8 +10,6 @@
    This module provides parsers for the grammar defined in
    RFC2822, \"Internet Message Format\",
    <http://www.faqs.org/rfcs/rfc2822.html>.
-
-   /Please note:/ The module is not particularly well tested.
 -}
 
 module Text.ParserCombinators.Parsec.Rfc2822 where
