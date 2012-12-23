@@ -1392,7 +1392,7 @@ obs_resent_reply = obs_header "Resent-Reply-To" address_list
 
 -- ** Obsolete trace fields (section 4.5.7)
 
-obs_return      :: CharParser a [Char]
+obs_return      :: CharParser a String
 obs_return       = obs_header "Return-Path" path
 
 obs_received    :: CharParser a [(String, String)]
