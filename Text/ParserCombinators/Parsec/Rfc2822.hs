@@ -17,6 +17,7 @@ module Text.ParserCombinators.Parsec.Rfc2822 where
 import System.Time
 import Data.Char ( ord )
 import Data.List ( intercalate )
+import Data.Maybe ( catMaybes )
 import Control.Monad ( liftM )
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
@@ -1172,7 +1173,7 @@ obs_mbox_list   = do r1 <- many1 (try (do r <- maybeOption mailbox
                                           _ <- unfold $ char ','
                                           return r))
                      r2 <- maybeOption mailbox
-                     return [x | Just x <- r1 ++ [r2]]
+                     return (catMaybes (r1 ++ [r2]))
                   <?> "obsolete syntax for a list of mailboxes"
 
 -- |This parser is identical to 'obs_mbox_list' but parses a list of
@@ -1188,7 +1189,7 @@ obs_addr_list   = do r1 <- many1 (try (do r <- maybeOption address
                                           optional cfws
                                           return r))
                      r2 <- maybeOption address
-                     return (concat [x | Just x <- r1 ++ [r2]])
+                     return (concat (catMaybes (r1 ++ [r2])))
                   <?> "obsolete syntax for a list of addresses"
 
 
