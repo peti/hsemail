@@ -23,6 +23,9 @@ import Control.Monad ( liftM )
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
 
+-- Customize hlint ...
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- * Useful parser combinators
 
 -- |Return @Nothing@ if the given parser doesn't match. This
