@@ -1121,8 +1121,7 @@ obs_domain_list = do _ <- char '@'
                      r2 <- many (do _ <- cfws <|> string ","
                                     optional cfws
                                     _ <- char '@'
-                                    r <- domain
-                                    return r)
+                                    domain)
                      return (r1 : r2)
                     <?> "route of an obsolete angle address"
 
