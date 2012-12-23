@@ -37,3 +37,13 @@ main = hspec $ do
     it "fails properly on incomplete input" $ do
       parseFailure day "Mon"
       parseFailure day "Thu"
+
+  describe "Rfc822.obs_mbox_list" $
+    it "parses hand-picked inputs correctly" $ do
+      parseTest obs_mbox_list "," `shouldReturn` []
+      parseTest obs_mbox_list "Joe Doe <joe@example.org>,( \r\n bla),,jane@\r\n example.net \r\n (Jane Doe)," `shouldReturn`
+        [NameAddr (Just "Joe Doe") "joe@example.org",NameAddr Nothing "jane@example.net"]
+
+  describe "Rfc822.obs_mbox_list" $
+    it "fails properly on incomplete input" $
+      parseFailure obs_mbox_list "foo@example.org"
