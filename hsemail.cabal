@@ -9,9 +9,9 @@ Homepage:               http://gitorious.org/hsemail
 Category:               Parsing
 Synopsis:               Internet Message Parsers
 Description:            Parsers for the syntax defined in RFC2821 and 2822
-Cabal-Version:          >= 1.6
+Cabal-Version:          >= 1.8
 Build-Type:             Simple
-Tested-With:            GHC == 7.0.4, GHC == 7.4.1
+Tested-With:            GHC >= 7.0.4 && <= 7.6.1
 
 Extra-Source-Files:     example/message-test.hs
                         example/message-test.input
@@ -28,3 +28,8 @@ Library
                         Text.ParserCombinators.Parsec.Rfc2821
                         Text.ParserCombinators.Parsec.Rfc2822
   Ghc-Options:          -Wall
+
+Test-Suite test-hsemail
+  type:                 exitcode-stdio-1.0
+  main-is:              self-test.hs
+  build-depends:        base, hspec, parsec, old-time
