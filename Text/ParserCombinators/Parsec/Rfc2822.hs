@@ -326,11 +326,16 @@ month_name      =     do { try (caseString "Jan"); return January }
                   <|> do { caseString "Dec"; return December }
                   <?> "month name"
 
--- |Match either an 'obs_day', or a one or two digit number and return it.
+-- Internal helper function: match a 1 or 2-digit number (day of month).
+
+day_of_month    :: CharParser a Int
+day_of_month    = fmap read (manyNtoM 1 2 digit)
+
+-- |Match a 1 or 2-digit number (day of month), recognizing both
+-- standard and obsolete folding syntax.
 
 day             :: CharParser a Int
-day             =  try (do { optional fws; r <- manyNtoM 1 2 digit; return (read r :: Int) }) <|> obs_day
-                   <?> "day"
+day             = try obs_day <|> day_of_month <?> "day"
 
 -- |This parser will match a 'time_of_day' specification followed by a
 -- 'zone'. It returns the tuple (TimeDiff,Int) corresponding to the
@@ -1027,7 +1032,7 @@ obs_month       = between cfws cfws month_name <?> "month name"
 -- |Parse a 'day' but allow for the obsolete folding syntax.
 
 obs_day         :: CharParser a Int
-obs_day         = unfold day <?> "day"
+obs_day         = unfold day_of_month <?> "day"
 
 -- |Parse a 'hour' but allow for the obsolete folding syntax.
 
