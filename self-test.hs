@@ -44,3 +44,11 @@ main = hspec $ do
 
     it "fails properly on incomplete input" $
       parseFailure obs_mbox_list "foo@example.org"
+
+  describe "Rfc822.subject" $
+    it "doesn't consume leading whitespace" $
+      parseTest subject "Subject: foo\r\n" `shouldReturn` " foo"
+
+  describe "Rfc822.comment" $
+    it "doesn't consume leading whitespace" $
+      parseTest comments "Comments: foo\r\n" `shouldReturn` " foo"
