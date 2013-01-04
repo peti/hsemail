@@ -859,13 +859,14 @@ resent_msg_id   = header "Resent-Message-ID" msg_id
 -- ** Trace fields (section 3.6.7)
 
 return_path     :: CharParser a String
-return_path     = header "Return-Path:" path
+return_path     = header "Return-Path" path
 
 path            :: CharParser a String
-path            = unfold (    do _ <- char '<'
-                                 r <- choice [ try addr_spec, do { _ <- cfws; return [] } ]
-                                 _ <- char '>'
-                                 return ("<" ++ r ++ ">")
+path            = unfold ( try (do _ <- char '<'
+                                   r <- option "" addr_spec
+                                   _ <- char '>'
+                                   return ("<" ++ r ++ ">")
+                               )
                           <|> obs_path
                          )
                   <?> "return path spec"
@@ -1104,7 +1105,8 @@ obs_angle_addr  = unfold (do _ <- char '<'
                              _ <- option [] obs_route
                              addr <- addr_spec
                              _ <- char '>'
-                             return addr)  -- TODO: route is lost here.
+                             return ("<" ++ addr ++ ">") -- TODO: route is lost here.
+                         )
                   <?> "obsolete angle address"
 
 -- |This parser parses the \"route\" part of 'obs_angle_addr' and
@@ -1167,7 +1169,7 @@ obs_domain      = do r1 <- atom
 --
 -- But this one is - contrary to all intuition - not:
 --
--- >    "simons@example.org"
+-- >    "joe@example.org"
 --
 -- Strange, isn't it?
 
