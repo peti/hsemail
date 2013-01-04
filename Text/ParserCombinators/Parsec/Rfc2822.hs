@@ -781,12 +781,16 @@ no_fold_literal = do _ <- char '['
 
 -- ** Informational fields (section 3.6.5)
 
--- |Parse a \"@Subject:@\" header line and return it's contents verbatim.
+-- |Parse a \"@Subject:@\" header line and return its contents verbatim.
+-- Please note that all whitespace and/or comments are preserved, i.e.
+-- the result of parsing @\"Subject: foo\"@ is @\" foo\"@, not @\"foo\"@.
 
 subject         :: CharParser a String
 subject         = header "Subject" unstructured
 
--- |Parse a \"@Comments:@\" header line and return it's contents verbatim.
+-- |Parse a \"@Comments:@\" header line and return its contents verbatim.
+-- Please note that all whitespace and/or comments are preserved, i.e.
+-- the result of parsing @\"Comments: foo\"@ is @\" foo\"@, not @\"foo\"@.
 
 comments        :: CharParser a String
 comments        = header "Comments" unstructured
