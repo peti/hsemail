@@ -262,8 +262,8 @@ date_time       = do wd <- option Monday (try (do wd <- day_of_week
                      return (CalendarTime y m d (tdHour td) (tdMin td) (tdSec td) 0 wd 0 "" z False)
                   <?> "date/time specification"
 
--- |This parser will match a 'day_name', optionally wrapped in folding
--- whitespace, or an 'obs_day_of_week' and return it's 'Day' value.
+-- |This parser matches a 'day_name' or an 'obs_day_of_week' (optionally
+-- wrapped in folding whitespace) and return its 'Day' value.
 
 day_of_week     :: CharParser a Day
 day_of_week     =     try (between (optional fws) (optional fws) day_name <?> "name of a day-of-the-week")
@@ -293,7 +293,7 @@ date            = do d <- day
                      return (y,m,d)
                   <?> "date specification"
 
--- |This parser will match a four digit number and return it's integer
+-- |This parser will match a four digit number and return its integer
 -- value. No range checking is performed.
 
 year            :: CharParser a Int
@@ -302,7 +302,7 @@ year            = do y <- manyN 4 digit
                   <?> "year"
 
 -- |This parser will match a 'month_name', optionally wrapped in
--- folding whitespace, or an 'obs_month' and return it's 'Month'
+-- folding whitespace, or an 'obs_month' and return its 'Month'
 -- value.
 
 month           :: CharParser a Month
@@ -361,7 +361,7 @@ time_of_day     = do h <- hour
                      return (TimeDiff 0 0 0 h m s 0)
                   <?> "time specification"
 
--- |This parser will match a two-digit number and return it's integer
+-- |This parser will match a two-digit number and return its integer
 -- value. No range checking is performed.
 
 hour            :: CharParser a Int
@@ -369,7 +369,7 @@ hour            = do r <- count 2 digit
                      return (read r :: Int)
                   <?> "hour"
 
--- |This parser will match a two-digit number and return it's integer
+-- |This parser will match a two-digit number and return its integer
 -- value. No range checking is performed.
 
 minute          :: CharParser a Int
@@ -377,7 +377,7 @@ minute          = do r <- count 2 digit
                      return (read r :: Int)
                   <?> "minute"
 
--- |This parser will match a two-digit number and return it's integer
+-- |This parser will match a two-digit number and return its integer
 -- value. No range checking takes place.
 
 second          :: CharParser a Int
