@@ -81,3 +81,7 @@ main = hspec $ do
       parseTest return_path "Return-Path: <>\r\n" `shouldReturn` "<>"
     it "loses the route-part of an obsolete routing address" $
       parseTest return_path "Return-Path: <@example1.org,@example2.org:joe@example.org>\r\n" `shouldReturn` "<joe@example.org>"
+
+  describe "Rfc2822.word" $
+    it "parses hand-picked inputs correctly" $
+      parseTest word "  foobar  " `shouldReturn` "foobar"
