@@ -33,3 +33,8 @@ Test-Suite test-hsemail
   type:                 exitcode-stdio-1.0
   main-is:              self-test.hs
   build-depends:        base, hspec, parsec, old-time
+
+Test-Suite doctest-hsemail
+  type:                 exitcode-stdio-1.0
+  main-is:              doc-test.hs
+  build-depends:        base, doctest, parsec, old-time
