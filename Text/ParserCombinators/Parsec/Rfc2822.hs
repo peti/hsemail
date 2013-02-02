@@ -82,7 +82,7 @@ specials        = oneOf "()<>[]:;@,.\\\""   <?> "one of ()<>[]:;@,.\\\""
 -- backslash and the actual content.
 
 quoted_pair     :: CharParser a String
-quoted_pair     = do { _ <- char '\\'; r <- text; return ['\\',r] }
+quoted_pair     = try obs_qp <|> do { _ <- char '\\'; r <- text; return ['\\',r] }
                   <?> "quoted pair"
 
 
