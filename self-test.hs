@@ -276,6 +276,22 @@ main = hspec $ do
     it "loses the route-part of an obsolete routing address" $
       parseTest path "<@example1.org,@example2.org:joe@example.org>" `shouldReturn` "<joe@example.org>"
 
+  describe "Rfc2822.dot_atom" $ do
+    it "consumes leading and trailing whitespace" $
+      parseTest dot_atom " first.last " `shouldReturn` "first.last"
+    it "does not allow interspersed whitespace" $ do
+      parseFailure dot_atom "first . last"
+      parseFailure dot_atom "first .last"
+      parseFailure dot_atom "first. last"
+
+  describe "Rfc2822.local_part" $ do
+    it "consumes leading and trailing whitespace" $
+      parseTest local_part " first.last " `shouldReturn` "first.last"
+    it "consumes interspersed whitespace (obsolete syntax)" $ do
+      parseTest local_part " first . last " `shouldReturn` "first.last"
+      parseTest local_part " first .last " `shouldReturn` "first.last"
+      parseTest local_part " first. last " `shouldReturn` "first.last"
+
   describe "Rfc2822.return_path" $ do
     it "parses hand-picked inputs correctly" $ do
       parseTest return_path "Return-Path: <joe@example.de>\r\n" `shouldReturn` "<joe@example.de>"
