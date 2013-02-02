@@ -33,6 +33,10 @@ parseFailure p input = parse (do { r <- p; eof; return r }) (show input) input `
 
 main :: IO ()
 main = hspec $ do
+  describe "Rfc2822.quoted_pair" $
+    it "can quote a nul byte" $
+      parseIdemTest quoted_pair "\\\0"
+
   describe "Rfc2822.date_time" $
     it "parses hand-picked times correctly" $
       parseTest date_time "Fri, 21 Dec 2012 00:07:43 +0300" `shouldReturn`
