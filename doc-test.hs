@@ -15,4 +15,8 @@ module Main ( main ) where
 import Test.DocTest
 
 main :: IO ()
-main = doctest []
+main = doctest
+       [ "Text/ParserCombinators/Parsec/Rfc2234.hs"
+       , "Text/ParserCombinators/Parsec/Rfc2821.hs"
+       , "Text/ParserCombinators/Parsec/Rfc2822.hs"
+       ]

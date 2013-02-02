@@ -452,11 +452,8 @@ angle_addr      = try (unfold (do _ <- char '<'
 -- semicolon. The found address(es) are returned - what may be none.
 -- Here is an example:
 --
--- >    parse group "" "my group: user1@example.org, user2@example.org;"
---
--- This input comes out as:
---
--- >    Right ["user1@example.org","user2@example.org"]
+-- >>> parse group "" "my group: user1@example.org, user2@example.org;"
+-- Right [NameAddr {nameAddr_name = Nothing, nameAddr_addr = "user1@example.org"},NameAddr {nameAddr_name = Nothing, nameAddr_addr = "user2@example.org"}]
 
 group           :: CharParser a [NameAddr]
 group           = do _ <- display_name
@@ -1079,26 +1076,14 @@ obs_zone        = choice [ mkZone "UT"  0
 
 -- * Obsolete Addressing (section 4.4)
 
--- |This parser will match the \"obsolete angle address\" syntax. This
--- construct used to be known as a \"route address\" in earlier RFCs.
--- There are two differences between this construct and the
--- 'angle_addr': For one - as usual -, the obsolete form allows for
--- more liberal insertion of folding whitespace and comments.
+-- |This parser matches the \"obsolete angle address\" syntax, a construct that
+-- used to be called \"route address\" in earlier RFCs. It differs from a
+-- standard 'angle_addr' in two ways: (1) it allows far more
+-- liberal insertion of folding whitespace and comments and (2) the address may
+-- contain a \"route\" (which this parser ignores):
 --
--- Secondly, and more importantly, angle addresses used to allow the
--- (optional) specification of a \"route\". The newer version does not.
--- Such a routing address looks like this:
---
--- >    <@example1.org,@example2.org:simons@example.org>
---
--- The parser will return a tuple that - in case of the above address -
--- looks like this:
---
--- >    (["example1.org","example2.org"],"simons@example.org")
---
--- The first part contains a list of hosts that constitute the route
--- part. This list may be empty! The second part of the tuple is the
--- actual 'addr_spec' address.
+-- >>> parse obs_angle_addr "" "<@example1.org,@example2.org:joe@example.org>"
+-- Right "<joe@example.org>"
 
 obs_angle_addr  :: CharParser a String
 obs_angle_addr  = unfold (do _ <- char '<'
@@ -1161,17 +1146,17 @@ obs_domain      = do r1 <- atom
 -- commas. But you may have multiple consecutive commas without giving
 -- a 'mailbox'. You may also have a valid 'obs_mbox_list' that
 -- contains /no/ 'mailbox' at all. On the other hand, you /must/ have
--- at least one comma.
+-- at least one comma. The following example is valid:
 --
--- So, this input is perfectly valid:
+-- >>> parse obs_mbox_list "" ","
+-- Right []
 --
--- >    ","
+-- But this one is not:
 --
--- But this one is - contrary to all intuition - not:
---
--- >    "joe@example.org"
---
--- Strange, isn't it?
+-- >>> parse obs_mbox_list "" "joe@example.org"
+-- Left (line 1, column 16):
+-- unexpected end of input
+-- expecting obsolete syntax for a list of mailboxes
 
 obs_mbox_list   :: CharParser a [NameAddr]
 obs_mbox_list   = do r1 <- many1 (try (do r <- maybeOption mailbox

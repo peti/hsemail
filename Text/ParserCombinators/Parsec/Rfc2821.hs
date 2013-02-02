@@ -217,23 +217,20 @@ postmaster = Mailbox [] "postmaster" []
 -- * Data Types for SMTP Replies
 ----------------------------------------------------------------------
 
--- |An SMTP reply is a three-digit return code plus some
--- waste of bandwidth called \"comments\". This is what the
--- list of strings is for; one string per line in the reply.
--- 'show' will append an \"@\\r\\n@\" end-of-line marker to
--- each entry in that list, so that the resulting string is
--- ready to be sent back to the peer.
+-- |An SMTP reply is a three-digit return code plus some waste of
+-- bandwidth called \"comments\". This is what the list of strings is
+-- for; one string per line in the reply. 'show' will append an
+-- \"@\\r\\n@\" end-of-line marker to each entry in that list, so that
+-- the resulting string is ready to be sent back to the peer. For
+-- example:
 --
--- Here is an example:
+-- >>> show $ Reply (Code Success MailSystem 0) ["worked", "like", "a charm" ]
+-- "250-worked\r\n250-like\r\n250 a charm\r\n"
 --
--- > *Rfc2821> print $ Reply (Code Success MailSystem 0)
--- >                     ["worked", "like", "a charm" ]
--- > 250-worked
--- > 250-like
--- > 250 a charm
+-- If the message is an empty list @[]@, a default text will be constructed:
 --
--- If the message is @[]@, you'll get a really helpful
--- default text.
+-- >>> show $ Reply (Code Success MailSystem 0) []
+-- "250 Success in category MailSystem\r\n"
 
 data SmtpReply = Reply SmtpCode [String]
 

@@ -37,4 +37,4 @@ Test-Suite test-hsemail
 Test-Suite doctest-hsemail
   type:                 exitcode-stdio-1.0
   main-is:              doc-test.hs
-  build-depends:        base, doctest, parsec, old-time
+  build-depends:        base, doctest
