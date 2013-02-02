@@ -503,7 +503,7 @@ addr_spec       = do r1 <- local_part
 -- a 'dot_atom' or a 'quoted_string'.
 
 local_part      :: CharParser a String
-local_part      = dot_atom <|> quoted_string
+local_part      = try obs_local_part <|> dot_atom <|> quoted_string
                   <?> "address' local part"
 
 -- |Parse and return a \"domain part\" of an 'addr_spec'. That is either
