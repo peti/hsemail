@@ -510,7 +510,7 @@ local_part      = dot_atom <|> quoted_string
 -- a 'dot_atom' or a 'domain_literal'.
 
 domain          :: CharParser a String
-domain          = dot_atom <|> domain_literal
+domain          = try obs_domain <|> dot_atom <|> domain_literal
                   <?> "address' domain part"
 
 -- |Parse a \"domain literal\". That is a \"@[@\" character, followed by
