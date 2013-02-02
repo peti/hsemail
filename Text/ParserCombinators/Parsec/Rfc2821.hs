@@ -21,6 +21,9 @@ import Data.List ( intercalate )
 import Data.Char ( toLower )
 import Text.ParserCombinators.Parsec.Rfc2234
 
+-- Customize hlint ...
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 ----------------------------------------------------------------------
 -- * ESMTP State Machine
 ----------------------------------------------------------------------
@@ -70,7 +73,7 @@ type SmtpdFSM = Control.Monad.State.State SessionState Event
 smtpdFSM :: String -> SmtpdFSM
 smtpdFSM str = either
                  (\_ -> return (Unrecognized str))
-                 (handleSmtpCmd)
+                 handleSmtpCmd
                  (parse smtpCmd "" str)
 
 -- |For those who want to parse the 'SmtpCmd' themselves.
@@ -171,7 +174,7 @@ instance Show SmtpCmd where
   show (Quit)        = "QUIT"
   show (Turn)        = "TURN"
   show (Help t)
-    | t == []        = "HELP"
+    | null t         = "HELP"
     | otherwise      = "HELP " ++ t
   show (WrongArg str _) =
     "Syntax error in argument of " ++ str ++ "."
@@ -192,11 +195,10 @@ instance Eq Mailbox where
 instance Show Mailbox where
   show (Mailbox [] [] []) = "<>"
   show (Mailbox [] "postmaster" []) = "<postmaster>"
-  show (Mailbox p u d) = let
-    route = intercalate "," . map ((:) '@') $ p
-    mbox  = u ++ "@" ++ d
-    in if null route then "<" ++ mbox ++ ">"
-                     else "<" ++ route ++ ":" ++ mbox ++ ">"
+  show (Mailbox p u d) = "<" ++ route ++ (if null route then [] else ":") ++ mbox ++ ">"
+    where
+      route = intercalate "," . map ((:) '@') $ p
+      mbox  = u ++ "@" ++ d
 
 instance Read Mailbox where
   readsPrec _ = parsec2read (path <|> mailbox)
@@ -359,7 +361,7 @@ help = try (mkCmd0 "HELP" (Help [])) <|>
        mkCmd1 "HELP" Help (option [] word)
 
 noop = try (mkCmd0 "NOOP" Noop) <|>
-       mkCmd1 "NOOP" (\_ -> Noop) (option [] word)
+       mkCmd1 "NOOP" (const Noop) (option [] word)
 
 
 ----------------------------------------------------------------------
