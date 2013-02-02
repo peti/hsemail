@@ -519,7 +519,7 @@ domain          = dot_atom <|> domain_literal
 
 domain_literal  :: CharParser a String
 domain_literal  = unfold (do _ <- char '['
-                             r <- many $ do { optional fws; dcontent }
+                             r <- many (optional fws >> dcontent)
                              optional fws
                              _ <- char ']'
                              return ("[" ++ concat r ++ "]"))
