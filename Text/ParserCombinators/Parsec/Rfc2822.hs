@@ -537,8 +537,8 @@ dcontent        = many1 dtext <|> quoted_pair
 
 dtext           :: CharParser a Char
 dtext           = no_ws_ctl
-                  <|> satisfy (\c -> ord c `elem` ([33..90] ++ [94,127]))
-                  <?> "character (excluding '[', ']', and '\\')"
+                  <|> satisfy (\c -> ord c `elem` ([33..90] ++ [94..126]))
+                  <?> "any ASCII character (excluding '[', ']', and '\\')"
 
 
 -- * Overall message syntax (section 3.5)
