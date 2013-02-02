@@ -20,6 +20,9 @@ import Text.ParserCombinators.Parsec
 import Data.Char ( toUpper, chr, ord )
 import Control.Monad ( liftM2 )
 
+-- Customize hlint ...
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 ----------------------------------------------------------------------
 -- * Parser Combinators
 ----------------------------------------------------------------------
