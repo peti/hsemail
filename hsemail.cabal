@@ -5,7 +5,7 @@ License:                BSD3
 License-File:           LICENSE
 Author:                 Peter Simons <simons@cryp.to>, Gero Kriependorf <gero-dev@physra.net>, Marty Pauley <marty@kasei.com>
 Maintainer:             Peter Simons <simons@cryp.to>
-Homepage:               http://gitorious.org/hsemail
+Homepage:               http://github.com/peti/hsemail
 Category:               Parsing
 Synopsis:               Internet Message Parsers
 Description:            Parsers for the syntax defined in RFC2821 and 2822
@@ -20,7 +20,7 @@ Extra-Source-Files:     example/message-test.hs
 
 Source-Repository head
   Type:                 git
-  Location:             git://gitorious.org/hsemail/mainline.git
+  Location:             git://github.com/peti/hsemail.git
 
 Library
   Build-Depends:        base >= 3 && < 5, mtl, parsec, old-time
