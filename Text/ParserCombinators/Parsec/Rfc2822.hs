@@ -569,16 +569,10 @@ message         = do f <- fields
                      b <- option [] (do _ <- crlf; body)
                      return (Message f b)
 
--- |This parser will return a message body as specified by this RFC;
--- that is basically any number of 'text' characters, which may be
--- divided into separate lines by 'crlf'.
+-- |A message body is just an unstructured sequence of characters.
 
 body            :: CharParser a String
-body            = do r1 <- many (try (do line <- many text
-                                         eol <- crlf
-                                         return (line ++ eol)))
-                     r2 <- many text
-                     return (concat r1 ++ r2)
+body            = many anyChar
 
 
 -- * Field definitions (section 3.6)
