@@ -11,7 +11,7 @@ Synopsis:               Internet Message Parsers
 Description:            Parsers for the syntax defined in RFC2821 and 2822
 Cabal-Version:          >= 1.8
 Build-Type:             Simple
-Tested-With:            GHC >= 7.0.4 && <= 7.8.2
+Tested-With:            GHC >= 7.0.4 && <= 7.8.3
 
 Extra-Source-Files:     example/message-test.hs
                         example/message-test.input
