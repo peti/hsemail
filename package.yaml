@@ -1,0 +1,44 @@
+name:           hsemail
+version:        1.7.8
+synopsis:       Internet Message Parsers
+author:
+  - Peter Simons
+  - Gero Kriependorf
+  - Marty Pauley
+maintainer:     Peter Simons <simons@cryp.to>
+license:        BSD3
+license-file:   LICENSE
+github:         peti/hsemail
+category:       Parsing
+stability:      stable
+tested-with:    GHC > 7.4 && < 8.1
+description:    Parsers for the Internt Message syntax defined in RFC2821 and 2822.
+
+ghc-options:    -Wall
+
+dependencies:
+  - base >= 3 && < 5
+  - old-time
+  - parsec
+  - mtl
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Text.ParserCombinators.Parsec.Rfc2234
+    - Text.ParserCombinators.Parsec.Rfc2821
+    - Text.ParserCombinators.Parsec.Rfc2822
+
+tests:
+  test-hsemail:
+    source-dirs: test
+    main: spec.hs
+    dependencies:
+      - hspec
+      - hsemail
+
+  doctest-hsemail:
+    source-dirs: test
+    main: doctest.hs
+    dependencies:
+      - doctest

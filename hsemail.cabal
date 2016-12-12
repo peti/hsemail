@@ -1,40 +1,71 @@
-Name:                   hsemail
-Version:                1.7.7
-Copyright:              (c) 2013 Peter Simons
-License:                BSD3
-License-File:           LICENSE
-Author:                 Peter Simons <simons@cryp.to>, Gero Kriependorf <gero-dev@physra.net>, Marty Pauley <marty@kasei.com>
-Maintainer:             Peter Simons <simons@cryp.to>
-Homepage:               http://github.com/peti/hsemail
-Category:               Parsing
-Synopsis:               Internet Message Parsers
-Description:            Parsers for the syntax defined in RFC2821 and 2822
-Cabal-Version:          >= 1.8
-Build-Type:             Simple
-Tested-With:            GHC > 7.4 && < 8.1
+-- This file has been generated from package.yaml by hpack version 0.14.1.
+--
+-- see: https://github.com/sol/hpack
 
-Extra-Source-Files:     example/message-test.hs
-                        example/message-test.input
-                        example/smtp-test.hs
-                        example/smtp-test.input
+name:                   hsemail
+version:                1.7.8
+synopsis:               Internet Message Parsers
+description:            Parsers for the Internt Message syntax defined in RFC2821 and 2822.
+category:               Parsing
+stability:              stable
+homepage:               https://github.com/peti/hsemail#readme
+bug-reports:            https://github.com/peti/hsemail/issues
+author:                 Peter Simons,
+                        Gero Kriependorf,
+                        Marty Pauley
+maintainer:             Peter Simons <simons@cryp.to>
+license:                BSD3
+license-file:           LICENSE
+tested-with:            GHC > 7.4 && < 8.1
+build-type:             Simple
+cabal-version:          >= 1.10
 
-Source-Repository head
-  Type:                 git
-  Location:             git://github.com/peti/hsemail.git
+source-repository head
+  type: git
+  location: https://github.com/peti/hsemail
 
-Library
-  Build-Depends:        base >= 3 && < 5, mtl, parsec, old-time
-  Exposed-Modules:      Text.ParserCombinators.Parsec.Rfc2234
-                        Text.ParserCombinators.Parsec.Rfc2821
-                        Text.ParserCombinators.Parsec.Rfc2822
-  Ghc-Options:          -Wall
+library
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >= 3 && < 5
+    , old-time
+    , parsec
+    , mtl
+  exposed-modules:
+      Text.ParserCombinators.Parsec.Rfc2234
+      Text.ParserCombinators.Parsec.Rfc2821
+      Text.ParserCombinators.Parsec.Rfc2822
+  other-modules:
+      Paths_hsemail
+  default-language: Haskell2010
 
-Test-Suite test-hsemail
-  type:                 exitcode-stdio-1.0
-  main-is:              self-test.hs
-  build-depends:        base, hspec, parsec, old-time
+test-suite doctest-hsemail
+  type: exitcode-stdio-1.0
+  main-is: doctest.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall
+  build-depends:
+      base >= 3 && < 5
+    , old-time
+    , parsec
+    , mtl
+    , doctest
+  default-language: Haskell2010
 
-Test-Suite doctest-hsemail
-  type:                 exitcode-stdio-1.0
-  main-is:              doc-test.hs
-  build-depends:        base, doctest
+test-suite test-hsemail
+  type: exitcode-stdio-1.0
+  main-is: spec.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall
+  build-depends:
+      base >= 3 && < 5
+    , old-time
+    , parsec
+    , mtl
+    , hspec
+    , hsemail
+  default-language: Haskell2010
