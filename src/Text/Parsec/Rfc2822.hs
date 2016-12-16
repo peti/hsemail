@@ -545,7 +545,7 @@ dtext           = no_ws_ctl
 -- represented in the 'Field' data type, and a message body, which may
 -- be empty.
 
-data GenericMessage a = Message [Field] (Maybe a) deriving Show
+data GenericMessage a = Message [Field] a deriving Show
 
 -- |Parse a complete message as defined by this RFC and it broken down
 -- into the separate header fields and the message body. Header lines,
@@ -563,15 +563,17 @@ data GenericMessage a = Message [Field] (Maybe a) deriving Show
 -- the appropriate parser together yourself. You'll find that this is
 -- rather easy to do. Refer to the 'fields' parser for further details.
 
-message         :: Stream s m Char => ParsecT s u m (GenericMessage s)
+message         :: (Monoid s, Stream s m Char) => ParsecT s u m (GenericMessage s)
 message         = do f <- fields
-                     b <- optionMaybe (do _ <- crlf; body)
+                     b <- option mempty (do _ <- crlf; body)
                      return (Message f b)
 
 -- |A message body is just an unstructured sequence of characters.
 
-body            :: Monad m => ParsecT s u m s
-body            = getInput
+body            :: (Monoid s, Monad m) => ParsecT s u m s
+body            = do v <- getInput
+                     setInput mempty
+                     return v
 
 -- * Field definitions (section 3.6)
 
