@@ -15,7 +15,6 @@
 
 module Text.Parsec.Rfc2821 where
 
-import Control.Monad.Identity
 import Control.Exception ( assert )
 import Control.Monad.State
 import Text.Parsec hiding (crlf)
