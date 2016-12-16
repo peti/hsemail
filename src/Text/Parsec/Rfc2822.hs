@@ -1,5 +1,6 @@
+{-# LANGUAGE FlexibleContexts #-}
 {- |
-   Module      :  Text.ParserCombinators.Parsec.Rfc2822
+   Module      :  Text.Parsec.Rfc2822
    Copyright   :  (c) 2013 Peter Simons
    License     :  BSD3
 
@@ -12,15 +13,15 @@
    <http://www.faqs.org/rfcs/rfc2822.html>.
 -}
 
-module Text.ParserCombinators.Parsec.Rfc2822 where
+module Text.Parsec.Rfc2822 where
 
 import System.Time
 import Data.Char ( ord )
 import Data.List ( intercalate )
 import Data.Maybe ( catMaybes )
-import Control.Monad ( liftM )
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
+import Control.Monad ( liftM, replicateM )
+import Text.Parsec hiding (crlf)
+import Text.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
 
 -- Customize hlint ...
 {-# ANN module "HLint: ignore Use camelCase" #-}
@@ -31,25 +32,25 @@ import Text.ParserCombinators.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string
 -- combinator is included in the latest parsec distribution as
 -- @optionMaybe@, but ghc-6.6.1 apparently doesn't have it.
 
-maybeOption    :: GenParser tok st a -> GenParser tok st (Maybe a)
+maybeOption    :: Stream s m Char => ParsecT s u m a -> ParsecT s u m (Maybe a)
 maybeOption p   = option Nothing (liftM Just p)
 
 -- |@unfold@ @=@ @between (optional cfws) (optional cfws)@
 
-unfold          :: CharParser a b -> CharParser a b
+unfold          :: Stream s m Char => ParsecT s u m a -> ParsecT s u m a
 unfold           = between (optional cfws) (optional cfws)
 
 -- |Construct a parser for a message header line from the
 -- header's name and a parser for the body.
 
-header          :: String -> CharParser a b -> CharParser a b
+header          :: Stream s m Char => String -> ParsecT s u m a -> ParsecT s u m a
 header n p       = let nameString = caseString (n ++ ":")
                    in
                    between nameString crlf p <?> (n ++ " header line")
 
 -- |Like 'header', but allows the obsolete white-space rules.
 
-obs_header      :: String -> CharParser a b -> CharParser a b
+obs_header      :: Stream s m Char => String -> ParsecT s u m a -> ParsecT s u m a
 obs_header n p   = let nameString = caseString n >> many wsp >> char ':'
                    in
                    between nameString crlf p <?> ("obsolete " ++ n ++ " header line")
@@ -59,19 +60,19 @@ obs_header n p   = let nameString = caseString n >> many wsp >> char ':'
 
 -- |Match any US-ASCII non-whitespace control character.
 
-no_ws_ctl       :: CharParser a Char
+no_ws_ctl       :: Stream s m Char => ParsecT s u m Char
 no_ws_ctl       = satisfy (\c -> ord c `elem` ([1..8] ++ [11,12] ++ [14..31] ++ [127]))
                   <?> "US-ASCII non-whitespace control character"
 
 -- |Match any US-ASCII character except for @\r@, @\n@.
 
-text            :: CharParser a Char
+text            :: Stream s m Char => ParsecT s u m Char
 text            = satisfy (\c -> ord c `elem` ([1..9] ++ [11,12] ++ [14..127]))
                   <?> "US-ASCII character (excluding CR and LF)"
 
 -- |Match any of the RFC's \"special\" characters: @()\<\>[]:;\@,.\\\"@.
 
-specials        :: CharParser a Char
+specials        :: Stream s m Char => ParsecT s u m Char
 specials        = oneOf "()<>[]:;@,.\\\""   <?> "one of ()<>[]:;@,.\\\""
 
 
@@ -81,17 +82,16 @@ specials        = oneOf "()<>[]:;@,.\\\""   <?> "one of ()<>[]:;@,.\\\""
 -- quoted. Note that the parsers returns /both/ characters, the
 -- backslash and the actual content.
 
-quoted_pair     :: CharParser a String
+quoted_pair     :: Stream s m Char => ParsecT s u m String
 quoted_pair     = try obs_qp <|> do { _ <- char '\\'; r <- text; return ['\\',r] }
                   <?> "quoted pair"
-
 
 -- ** Folding white space and comments (section 3.2.3)
 
 -- |Match \"folding whitespace\". That is any combination of 'wsp' and
 -- 'crlf' followed by 'wsp'.
 
-fws             :: CharParser a String
+fws             :: Stream s m Char => ParsecT s u m String
 fws             = do r <- many1 $ choice [ blanks, linebreak]
                      return (concat r)
     where
@@ -107,14 +107,14 @@ fws             = do r <- many1 $ choice [ blanks, linebreak]
 -- comments has become fairly common in the real world, so we'll just
 -- accept the fact.
 
-ctext           :: CharParser a Char
+ctext           :: Stream s m Char => ParsecT s u m Char
 ctext           = no_ws_ctl <|> satisfy (\c -> ord c `elem` ([33..39] ++ [42..91] ++ [93..126] ++ [128..255]))
                   <?> "any regular character (excluding '(', ')', and '\\')"
 
 -- |Match a \"comments\". That is any combination of 'ctext',
 -- 'quoted_pair's, and 'fws' between brackets. Comments may nest.
 
-comment         :: CharParser a String
+comment         :: Stream s m Char => ParsecT s u m String
 comment         = do _ <- char '('
                      r1 <- many ccontent
                      r2 <- option [] fws
@@ -128,7 +128,7 @@ comment         = do _ <- char '('
 
 -- |Match any combination of 'fws' and 'comments'.
 
-cfws            :: CharParser a String
+cfws            :: Stream s m Char => ParsecT s u m String
 cfws            = do r <- many1 $ choice [ fws, comment ]
                      return (concat r)
 
@@ -137,24 +137,24 @@ cfws            = do r <- many1 $ choice [ fws, comment ]
 -- |Match any US-ASCII character except for control characters,
 -- 'specials', or space. 'atom' and 'dot_atom' are made up of this.
 
-atext           :: CharParser a Char
+atext           :: Stream s m Char => ParsecT s u m Char
 atext           = alpha <|> digit <|> oneOf "!#$%&'*+-/=?^_`{|}~"
                   <?> "US-ASCII character (excluding controls, space, and specials)"
 
 -- |Match one or more 'atext' characters and skip any preceeding or
 -- trailing 'cfws'.
 
-atom            :: CharParser a String
+atom            :: Stream s m Char => ParsecT s u m String
 atom            = unfold (many1 atext <?> "atom")
 
 -- |Match 'dot_atom_text' and skip any preceeding or trailing 'cfws'.
 
-dot_atom        :: CharParser a String
+dot_atom        :: Stream s m Char => ParsecT s u m String
 dot_atom        = unfold (dot_atom_text <?> "dot atom")
 
 -- |Match two or more 'atext's interspersed by dots.
 
-dot_atom_text   :: CharParser a String
+dot_atom_text   :: Stream s m Char => ParsecT s u m String
 dot_atom_text   = fmap (intercalate ".") (sepBy1 (many1 atext) (char '.'))
                   <?> "dot atom content"
 
@@ -164,20 +164,20 @@ dot_atom_text   = fmap (intercalate ".") (sepBy1 (many1 atext) (char '.'))
 -- |Match any non-whitespace, non-control US-ASCII character except
 -- for \"@\\@\" and \"@\"@\".
 
-qtext           :: CharParser a Char
+qtext           :: Stream s m Char => ParsecT s u m Char
 qtext           = no_ws_ctl <|> satisfy (\c -> ord c `elem` ([33] ++ [35..91] ++ [93..126]))
                   <?> "US-ASCII character (excluding '\\', and '\"')"
 
 -- |Match either 'qtext' or 'quoted_pair'.
 
-qcontent        :: CharParser a String
+qcontent        :: Stream s m Char => ParsecT s u m String
 qcontent        = many1 qtext <|> quoted_pair
                   <?> "quoted string content"
 
 -- |Match any number of 'qcontent' between double quotes. Any 'cfws'
 -- preceeding or following the \"atom\" is skipped automatically.
 
-quoted_string   :: CharParser a String
+quoted_string   :: Stream s m Char => ParsecT s u m String
 quoted_string   = unfold (do _ <- dquote
                              r1 <- many (do r1 <- option [] fws
                                             r2 <- qcontent
@@ -192,18 +192,18 @@ quoted_string   = unfold (do _ <- dquote
 
 -- |Match either 'atom' or 'quoted_string'.
 
-word            :: CharParser a String
+word            :: Stream s m Char => ParsecT s u m String
 word            = unfold (atom <|> quoted_string)     <?> "word"
 
 -- |Match either one or more 'word's or an 'obs_phrase'.
 
-phrase          :: CharParser a [String]
+phrase          :: Stream s m Char => ParsecT s u m [String]
 phrase          = {- many1 word <?> "phrase" <|> -} obs_phrase
 
 -- |Match any non-whitespace, non-control US-ASCII character except
 -- for \"@\\@\" and \"@\"@\".
 
-utext           :: CharParser a Char
+utext           :: Stream s m Char => ParsecT s u m Char
 utext           = no_ws_ctl <|> satisfy (\c -> ord c `elem` [33..126])
                   <?> "regular US-ASCII character (excluding '\\', and '\"')"
 
@@ -213,7 +213,7 @@ utext           = no_ws_ctl <|> satisfy (\c -> ord c `elem` [33..126])
 -- Please note that any comments or whitespace that prefaces or
 -- follows the actual 'utext' is /included/ in the returned string.
 
-unstructured    :: CharParser a String
+unstructured    :: Stream s m Char => ParsecT s u m String
 unstructured    = do r1 <- option [] fws
                      r2 <- many (do r3 <- utext
                                     r4 <- option [] fws
@@ -251,7 +251,7 @@ unstructured    = do r1 <- option [] fws
 -- return /local time/. This will not necessarily be the time you're
 -- expecting.)
 
-date_time       :: CharParser a CalendarTime
+date_time       :: Stream s m Char => ParsecT s u m CalendarTime
 date_time       = do wd <- option Monday (try (do wd <- day_of_week
                                                   _ <- char ','
                                                   return wd))
@@ -265,14 +265,14 @@ date_time       = do wd <- option Monday (try (do wd <- day_of_week
 -- |This parser matches a 'day_name' or an 'obs_day_of_week' (optionally
 -- wrapped in folding whitespace) and return its 'Day' value.
 
-day_of_week     :: CharParser a Day
+day_of_week     :: Stream s m Char => ParsecT s u m Day
 day_of_week     =     try (between (optional fws) (optional fws) day_name <?> "name of a day-of-the-week")
                   <|> obs_day_of_week
 
 -- |This parser will the abbreviated weekday names (\"@Mon@\", \"@Tue@\", ...)
 -- and return the appropriate 'Day' value.
 
-day_name        :: CharParser a Day
+day_name        :: Stream s m Char => ParsecT s u m Day
 day_name        =     do { caseString "Mon"; return Monday }
                   <|> do { try (caseString "Tue"); return Tuesday }
                   <|> do { caseString "Wed"; return Wednesday }
@@ -286,7 +286,7 @@ day_name        =     do { caseString "Mon"; return Monday }
 -- a tripple of the form (Int,Month,Int) - corresponding to
 -- (year,month,day).
 
-date            :: CharParser a (Int,Month,Int)
+date            :: Stream s m Char => ParsecT s u m (Int, Month, Int)
 date            = do d <- day
                      m <- month
                      y <- year
@@ -296,7 +296,7 @@ date            = do d <- day
 -- |This parser will match a four digit number and return its integer
 -- value. No range checking is performed.
 
-year            :: CharParser a Int
+year            :: Stream s m Char => ParsecT s u m Int
 year            = do y <- manyN 4 digit
                      return (read y :: Int)
                   <?> "year"
@@ -305,7 +305,7 @@ year            = do y <- manyN 4 digit
 -- folding whitespace, or an 'obs_month' and return its 'Month'
 -- value.
 
-month           :: CharParser a Month
+month           :: Stream s m Char => ParsecT s u m Month
 month           =     try (between (optional fws) (optional fws) month_name <?> "month name")
                   <|> obs_month
 
@@ -313,7 +313,7 @@ month           =     try (between (optional fws) (optional fws) month_name <?> 
 -- |This parser will the abbreviated month names (\"@Jan@\", \"@Feb@\", ...)
 -- and return the appropriate 'Month' value.
 
-month_name      :: CharParser a Month
+month_name      :: Stream s m Char => ParsecT s u m Month
 month_name      =     do { try (caseString "Jan"); return January }
                   <|> do { caseString "Feb"; return February }
                   <|> do { try (caseString "Mar"); return March }
@@ -330,20 +330,20 @@ month_name      =     do { try (caseString "Jan"); return January }
 
 -- Internal helper function: match a 1 or 2-digit number (day of month).
 
-day_of_month    :: CharParser a Int
+day_of_month    :: Stream s m Char => ParsecT s u m Int
 day_of_month    = fmap read (manyNtoM 1 2 digit)
 
 -- |Match a 1 or 2-digit number (day of month), recognizing both
 -- standard and obsolete folding syntax.
 
-day             :: CharParser a Int
+day             :: Stream s m Char => ParsecT s u m Int
 day             = try obs_day <|> day_of_month <?> "day"
 
 -- |This parser will match a 'time_of_day' specification followed by a
 -- 'zone'. It returns the tuple (TimeDiff,Int) corresponding to the
 -- return values of either parser.
 
-time            :: CharParser a (TimeDiff,Int)
+time            :: Stream s m Char => ParsecT s u m (TimeDiff, Int)
 time            = do t <- time_of_day
                      _ <- fws
                      z <- zone
@@ -353,7 +353,7 @@ time            = do t <- time_of_day
 -- |This parser will match a time-of-day specification of \"@hh:mm@\" or
 -- \"@hh:mm:ss@\" and return the corrsponding time as a 'TimeDiff'.
 
-time_of_day     :: CharParser a TimeDiff
+time_of_day     :: Stream s m Char => ParsecT s u m TimeDiff
 time_of_day     = do h <- hour
                      _ <- char ':'
                      m <- minute
@@ -364,24 +364,24 @@ time_of_day     = do h <- hour
 -- |This parser will match a two-digit number and return its integer
 -- value. No range checking is performed.
 
-hour            :: CharParser a Int
-hour            = do r <- count 2 digit
+hour            :: Stream s m Char => ParsecT s u m Int
+hour            = do r <- replicateM 2 digit
                      return (read r :: Int)
                   <?> "hour"
 
 -- |This parser will match a two-digit number and return its integer
 -- value. No range checking is performed.
 
-minute          :: CharParser a Int
-minute          = do r <- count 2 digit
+minute          :: Stream s m Char => ParsecT s u m Int
+minute          = do r <- replicateM 2 digit
                      return (read r :: Int)
                   <?> "minute"
 
 -- |This parser will match a two-digit number and return its integer
 -- value. No range checking takes place.
 
-second          :: CharParser a Int
-second          = do r <- count 2 digit
+second          :: Stream s m Char => ParsecT s u m Int
+second          = do r <- replicateM 2 digit
                      return (read r :: Int)
                   <?> "second"
 
@@ -389,7 +389,7 @@ second          = do r <- count 2 digit
 -- \"@+hhmm@\" or \"@-hhmm@\" and return the zone's offset to UTC in
 -- seconds as an integer. 'obs_zone' is matched as well.
 
-zone            :: CharParser a Int
+zone            :: Stream s m Char => ParsecT s u m Int
 zone            = (    do _ <- char '+'
                           h <- hour
                           m <- minute
@@ -416,21 +416,21 @@ data NameAddr = NameAddr { nameAddr_name :: Maybe String
 -- |Parse a single 'mailbox' or an address 'group' and return the
 -- address(es).
 
-address         :: CharParser a [NameAddr]
+address         :: Stream s m Char => ParsecT s u m [NameAddr]
 address         = try (do { r <- mailbox; return [r] }) <|> group
                   <?> "address"
 
 -- |Parse a 'name_addr' or an 'addr_spec' and return the
 -- address.
 
-mailbox         :: CharParser a NameAddr
+mailbox         :: Stream s m Char => ParsecT s u m NameAddr
 mailbox         = try name_addr <|> fmap (NameAddr Nothing) addr_spec
                   <?> "mailbox"
 
 -- |Parse an 'angle_addr', optionally prefaced with a 'display_name',
 -- and return the address.
 
-name_addr       :: CharParser a NameAddr
+name_addr       :: Stream s m Char => ParsecT s u m NameAddr
 name_addr       = do name <- maybeOption display_name
                      addr <- angle_addr
                      return (NameAddr name addr)
@@ -438,7 +438,7 @@ name_addr       = do name <- maybeOption display_name
 
 -- |Parse an 'angle_addr' or an 'obs_angle_addr' and return the address.
 
-angle_addr      :: CharParser a String
+angle_addr      :: Stream s m Char => ParsecT s u m String
 angle_addr      = try (unfold (do _ <- char '<'
                                   r <- addr_spec
                                   _ <- char '>'
@@ -455,7 +455,7 @@ angle_addr      = try (unfold (do _ <- char '<'
 -- >>> parse group "" "my group: user1@example.org, user2@example.org;"
 -- Right [NameAddr {nameAddr_name = Nothing, nameAddr_addr = "user1@example.org"},NameAddr {nameAddr_name = Nothing, nameAddr_addr = "user2@example.org"}]
 
-group           :: CharParser a [NameAddr]
+group           :: Stream s m Char => ParsecT s u m [NameAddr]
 group           = do _ <- display_name
                      _ <- char ':'
                      r <- option [] mailbox_list
@@ -465,20 +465,20 @@ group           = do _ <- display_name
 
 -- |Parse and return a 'phrase'.
 
-display_name    :: CharParser a String
+display_name    :: Stream s m Char => ParsecT s u m String
 display_name    = fmap unwords phrase
                   <?> "display name"
 
 -- |Parse a list of 'mailbox' addresses, every two addresses being
 -- separated by a comma, and return the list of found address(es).
 
-mailbox_list    :: CharParser a [NameAddr]
+mailbox_list    :: Stream s m Char => ParsecT s u m [NameAddr]
 mailbox_list    = sepBy mailbox (char ',') <?> "mailbox list"
 
 -- |Parse a list of 'address' addresses, every two addresses being
 -- separated by a comma, and return the list of found address(es).
 
-address_list    :: CharParser a [NameAddr]
+address_list    :: Stream s m Char => ParsecT s u m [NameAddr]
 address_list    = do { r <-sepBy address (char ','); return (concat r) }
                   <?> "address list"
 
@@ -489,7 +489,7 @@ address_list    = do { r <-sepBy address (char ','); return (concat r) }
 -- by an \"@\@@\" character, followed by a 'domain'. Return the complete
 -- address as 'String', ignoring any whitespace or any comments.
 
-addr_spec       :: CharParser a String
+addr_spec       :: Stream s m Char => ParsecT s u m String
 addr_spec       = do r1 <- local_part
                      _ <- char '@'
                      r2 <- domain
@@ -499,14 +499,14 @@ addr_spec       = do r1 <- local_part
 -- |Parse and return a \"local part\" of an 'addr_spec'. That is either
 -- a 'dot_atom' or a 'quoted_string'.
 
-local_part      :: CharParser a String
+local_part      :: Stream s m Char => ParsecT s u m String
 local_part      = try obs_local_part <|> dot_atom <|> quoted_string
                   <?> "address' local part"
 
 -- |Parse and return a \"domain part\" of an 'addr_spec'. That is either
 -- a 'dot_atom' or a 'domain_literal'.
 
-domain          :: CharParser a String
+domain          :: Stream s m Char => ParsecT s u m String
 domain          = try obs_domain <|> dot_atom <|> domain_literal
                   <?> "address' domain part"
 
@@ -514,7 +514,7 @@ domain          = try obs_domain <|> dot_atom <|> domain_literal
 -- any amount of 'dcontent', followed by a terminating \"@]@\"
 -- character. The complete string is returned verbatim.
 
-domain_literal  :: CharParser a String
+domain_literal  :: Stream s m Char => ParsecT s u m String
 domain_literal  = unfold (do _ <- char '['
                              r <- many (optional fws >> dcontent)
                              optional fws
@@ -525,14 +525,14 @@ domain_literal  = unfold (do _ <- char '['
 -- |Parse and return any characters that are legal in a
 -- 'domain_literal'. That is 'dtext' or a 'quoted_pair'.
 
-dcontent        :: CharParser a String
+dcontent        :: Stream s m Char => ParsecT s u m String
 dcontent        = many1 dtext <|> quoted_pair
                   <?> "domain literal content"
 
 -- |Parse and return any ASCII characters except \"@[@\", \"@]@\", and
 -- \"@\\@\".
 
-dtext           :: CharParser a Char
+dtext           :: Stream s m Char => ParsecT s u m Char
 dtext           = no_ws_ctl
                   <|> satisfy (\c -> ord c `elem` ([33..90] ++ [94..126]))
                   <?> "any ASCII character (excluding '[', ']', and '\\')"
@@ -564,14 +564,14 @@ type Message = GenericMessage String
 -- the appropriate parser together yourself. You'll find that this is
 -- rather easy to do. Refer to the 'fields' parser for further details.
 
-message         :: CharParser a Message
+message         :: Stream s m Char => ParsecT s u m Message
 message         = do f <- fields
                      b <- option [] (do _ <- crlf; body)
                      return (Message f b)
 
 -- |A message body is just an unstructured sequence of characters.
 
-body            :: CharParser a String
+body            :: Stream s m Char => ParsecT s u m String
 body            = many anyChar
 
 
@@ -620,7 +620,7 @@ data Field      = OptionalField       String String
 -- hardly ever return a syntax error -- what conforms with the idea
 -- that any message that can possibly be accepted /should/ be.
 
-fields          :: CharParser a [Field]
+fields          :: Stream s m Char => ParsecT s u m [Field]
 fields          = many (    try (do { r <- from; return (From r) })
                         <|> try (do { r <- sender; return (Sender r) })
                         <|> try (do { r <- return_path; return (ReturnPath r) })
@@ -653,7 +653,7 @@ fields          = many (    try (do { r <- from; return (From r) })
 -- |Parse a \"@Date:@\" header line and return the date it contains a
 -- 'CalendarTime'.
 
-orig_date       :: CharParser a CalendarTime
+orig_date       :: Stream s m Char => ParsecT s u m CalendarTime
 orig_date       = header "Date" date_time
 
 
@@ -662,19 +662,19 @@ orig_date       = header "Date" date_time
 -- |Parse a \"@From:@\" header line and return the 'mailbox_list'
 -- address(es) contained in it.
 
-from            :: CharParser a [NameAddr]
+from            :: Stream s m Char => ParsecT s u m [NameAddr]
 from            = header "From" mailbox_list
 
 -- |Parse a \"@Sender:@\" header line and return the 'mailbox' address
 -- contained in it.
 
-sender          :: CharParser a NameAddr
+sender          :: Stream s m Char => ParsecT s u m NameAddr
 sender          = header "Sender" mailbox
 
 -- |Parse a \"@Reply-To:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-reply_to        :: CharParser a [NameAddr]
+reply_to        :: Stream s m Char => ParsecT s u m [NameAddr]
 reply_to        = header "Reply-To" address_list
 
 
@@ -683,19 +683,19 @@ reply_to        = header "Reply-To" address_list
 -- |Parse a \"@To:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-to              :: CharParser a [NameAddr]
+to              :: Stream s m Char => ParsecT s u m [NameAddr]
 to              = header "To" address_list
 
 -- |Parse a \"@Cc:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-cc              :: CharParser a [NameAddr]
+cc              :: Stream s m Char => ParsecT s u m [NameAddr]
 cc              = header "Cc" address_list
 
 -- |Parse a \"@Bcc:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-bcc             :: CharParser a [NameAddr]
+bcc             :: Stream s m Char => ParsecT s u m [NameAddr]
 bcc             = header "Bcc" (try address_list <|> do { optional cfws; return [] })
 
 -- ** Identification fields (section 3.6.4)
@@ -703,26 +703,26 @@ bcc             = header "Bcc" (try address_list <|> do { optional cfws; return 
 -- |Parse a \"@Message-Id:@\" header line and return the 'msg_id'
 -- contained in it.
 
-message_id      :: CharParser a String
+message_id      :: Stream s m Char => ParsecT s u m String
 message_id      = header "Message-ID" msg_id
 
 -- |Parse a \"@In-Reply-To:@\" header line and return the list of
 -- 'msg_id's contained in it.
 
-in_reply_to     :: CharParser a [String]
+in_reply_to     :: Stream s m Char => ParsecT s u m [String]
 in_reply_to     = header "In-Reply-To" (many1 msg_id)
 
 -- |Parse a \"@References:@\" header line and return the list of
 -- 'msg_id's contained in it.
 
-references      :: CharParser a [String]
+references      :: Stream s m Char => ParsecT s u m [String]
 references      = header "References" (many1 msg_id)
 
 -- |Parse a \"@message ID:@\" and return it. A message ID is almost
 -- identical to an 'angle_addr', but with stricter rules about folding
 -- and whitespace.
 
-msg_id          :: CharParser a String
+msg_id          :: Stream s m Char => ParsecT s u m String
 msg_id          = unfold (do _ <- char '<'
                              idl <- id_left
                              _ <- char '@'
@@ -735,7 +735,7 @@ msg_id          = unfold (do _ <- char '<'
 -- the 'local_part' of an e-mail address, but with stricter rules
 -- about folding and whitespace.
 
-id_left         :: CharParser a String
+id_left         :: Stream s m Char => ParsecT s u m String
 id_left         = dot_atom_text <|> no_fold_quote
                   <?> "left part of an message ID"
 
@@ -743,7 +743,7 @@ id_left         = dot_atom_text <|> no_fold_quote
 -- the 'domain' of an e-mail address, but with stricter rules about
 -- folding and whitespace.
 
-id_right        :: CharParser a String
+id_right        :: Stream s m Char => ParsecT s u m String
 id_right        = dot_atom_text <|> no_fold_literal
                   <?> "right part of an message ID"
 
@@ -751,7 +751,7 @@ id_right        = dot_atom_text <|> no_fold_literal
 -- return the concatenated string. This makes up the 'id_left' of a
 -- 'msg_id'.
 
-no_fold_quote   :: CharParser a String
+no_fold_quote   :: Stream s m Char => ParsecT s u m String
 no_fold_quote   = do _ <- dquote
                      r <- many (many1 qtext <|> quoted_pair)
                      _ <- dquote
@@ -762,7 +762,7 @@ no_fold_quote   = do _ <- dquote
 -- return the concatenated string. This makes up the 'id_right' of a
 -- 'msg_id'.
 
-no_fold_literal :: CharParser a String
+no_fold_literal :: Stream s m Char => ParsecT s u m String
 no_fold_literal = do _ <- char '['
                      r <- many (many1 dtext <|> quoted_pair)
                      _ <- char ']'
@@ -776,21 +776,21 @@ no_fold_literal = do _ <- char '['
 -- Please note that all whitespace and/or comments are preserved, i.e.
 -- the result of parsing @\"Subject: foo\"@ is @\" foo\"@, not @\"foo\"@.
 
-subject         :: CharParser a String
+subject         :: Stream s m Char => ParsecT s u m String
 subject         = header "Subject" unstructured
 
 -- |Parse a \"@Comments:@\" header line and return its contents verbatim.
 -- Please note that all whitespace and/or comments are preserved, i.e.
 -- the result of parsing @\"Comments: foo\"@ is @\" foo\"@, not @\"foo\"@.
 
-comments        :: CharParser a String
+comments        :: Stream s m Char => ParsecT s u m String
 comments        = header "Comments" unstructured
 
 -- |Parse a \"@Keywords:@\" header line and return the list of 'phrase's
 -- found. Please not that each phrase is again a list of 'atom's, as
 -- returned by the 'phrase' parser.
 
-keywords        :: CharParser a [[String]]
+keywords        :: Stream s m Char => ParsecT s u m [[String]]
 keywords        = header "Keywords" (do r1 <- phrase
                                         r2 <- many (do _ <- char ','; phrase)
                                         return (r1:r2))
@@ -801,39 +801,39 @@ keywords        = header "Keywords" (do r1 <- phrase
 -- |Parse a \"@Resent-Date:@\" header line and return the date it
 -- contains as 'CalendarTime'.
 
-resent_date     :: CharParser a CalendarTime
+resent_date     :: Stream s m Char => ParsecT s u m CalendarTime
 resent_date     = header "Resent-Date" date_time
 
 -- |Parse a \"@Resent-From:@\" header line and return the 'mailbox_list'
 -- address(es) contained in it.
 
-resent_from     :: CharParser a [NameAddr]
+resent_from     :: Stream s m Char => ParsecT s u m [NameAddr]
 resent_from     = header "Resent-From" mailbox_list
 
 
 -- |Parse a \"@Resent-Sender:@\" header line and return the 'mailbox_list'
 -- address(es) contained in it.
 
-resent_sender   :: CharParser a NameAddr
+resent_sender   :: Stream s m Char => ParsecT s u m NameAddr
 resent_sender   = header "Resent-Sender" mailbox
 
 
 -- |Parse a \"@Resent-To:@\" header line and return the 'mailbox'
 -- address contained in it.
 
-resent_to       :: CharParser a [NameAddr]
+resent_to       :: Stream s m Char => ParsecT s u m [NameAddr]
 resent_to       = header "Resent-To" address_list
 
 -- |Parse a \"@Resent-Cc:@\" header line and return the 'address_list'
 -- address(es) contained in it.
 
-resent_cc       :: CharParser a [NameAddr]
+resent_cc       :: Stream s m Char => ParsecT s u m [NameAddr]
 resent_cc       = header "Resent-Cc" address_list
 
 -- |Parse a \"@Resent-Bcc:@\" header line and return the 'address_list'
 -- address(es) contained in it. (This list may be empty.)
 
-resent_bcc      :: CharParser a [NameAddr]
+resent_bcc      :: Stream s m Char => ParsecT s u m [NameAddr]
 resent_bcc      = header "Resent-Bcc" (    try address_list
                                        <|> do optional cfws
                                               return []
@@ -843,16 +843,16 @@ resent_bcc      = header "Resent-Bcc" (    try address_list
 -- |Parse a \"@Resent-Message-ID:@\" header line and return the 'msg_id'
 -- contained in it.
 
-resent_msg_id   :: CharParser a String
+resent_msg_id   :: Stream s m Char => ParsecT s u m String
 resent_msg_id   = header "Resent-Message-ID" msg_id
 
 
 -- ** Trace fields (section 3.6.7)
 
-return_path     :: CharParser a String
+return_path     :: Stream s m Char => ParsecT s u m String
 return_path     = header "Return-Path" path
 
-path            :: CharParser a String
+path            :: Stream s m Char => ParsecT s u m String
 path            = unfold ( try (do _ <- char '<'
                                    r <- option "" addr_spec
                                    _ <- char '>'
@@ -862,31 +862,31 @@ path            = unfold ( try (do _ <- char '<'
                          )
                   <?> "return path spec"
 
-received        :: CharParser a ([(String,String)], CalendarTime)
+received        :: Stream s m Char => ParsecT s u m ([(String,String)], CalendarTime)
 received        = header "Received" (do r1 <- name_val_list
                                         _ <- char ';'
                                         r2 <- date_time
                                         return (r1,r2))
 
-name_val_list   :: CharParser a [(String,String)]
+name_val_list   :: Stream s m Char => ParsecT s u m [(String,String)]
 name_val_list   = do optional cfws
                      many1 name_val_pair
                   <?> "list of name/value pairs"
 
-name_val_pair   :: CharParser a (String,String)
+name_val_pair   :: Stream s m Char => ParsecT s u m (String,String)
 name_val_pair   = do r1 <- item_name
                      _ <- cfws
                      r2 <- item_value
                      return (r1,r2)
                   <?> "a name/value pair"
 
-item_name       :: CharParser a String
+item_name       :: Stream s m Char => ParsecT s u m String
 item_name       = do r1 <- alpha
                      r2 <- many $ choice [ char '-', alpha, digit ]
                      return (r1 : r2)
                   <?> "name of a name/value pair"
 
-item_value      :: CharParser a String
+item_value      :: Stream s m Char => ParsecT s u m String
 item_value      = choice [ try (do { r <- many1 angle_addr; return (concat r) })
                          , try addr_spec
                          , try domain
@@ -901,7 +901,7 @@ item_value      = choice [ try (do { r <- many1 angle_addr; return (concat r) })
 -- 'field_name' and 'unstructured' text of the header. The name will
 -- /not/ contain the terminating colon.
 
-optional_field  :: CharParser a (String,String)
+optional_field  :: Stream s m Char => ParsecT s u m (String,String)
 optional_field  = do n <- field_name
                      _ <- char ':'
                      b <- unstructured
@@ -912,13 +912,13 @@ optional_field  = do n <- field_name
 -- |Parse and return an arbitrary header field name. That is one or
 -- more 'ftext' characters.
 
-field_name      :: CharParser a String
+field_name      :: Stream s m Char => ParsecT s u m String
 field_name      = many1 ftext <?> "header line name"
 
 -- |Match and return any ASCII character except for control
 -- characters, whitespace, and \"@:@\".
 
-ftext           :: CharParser a Char
+ftext           :: Stream s m Char => ParsecT s u m Char
 ftext           = satisfy (\c -> ord c `elem` ([33..57] ++ [59..126]))
                   <?> "character (excluding controls, space, and ':')"
 
@@ -930,7 +930,7 @@ ftext           = satisfy (\c -> ord c `elem` ([33..57] ++ [59..126]))
 -- quoted. The parser will return both, the backslash and the actual
 -- character.
 
-obs_qp          :: CharParser a String
+obs_qp          :: Stream s m Char => ParsecT s u m String
 obs_qp          = do _ <- char '\\'
                      c <- satisfy (\c -> ord c `elem` [0..127])
                      return ['\\',c]
@@ -941,7 +941,7 @@ obs_qp          = do _ <- char '\\'
 -- better consult the RFC for details. The parser will return the
 -- complete string, including those special characters.
 
-obs_text        :: CharParser a String
+obs_text        :: Stream s m Char => ParsecT s u m String
 obs_text        = do r1 <- many lf
                      r2 <- many cr
                      r3 <- many (do r4 <- obs_char
@@ -953,20 +953,20 @@ obs_text        = do r1 <- many lf
 -- |Match and return the obsolete \"char\" syntax, which - unlike
 -- 'character' - did not allow \"carriage return\" and \"linefeed\".
 
-obs_char        :: CharParser a Char
+obs_char        :: Stream s m Char => ParsecT s u m Char
 obs_char        = satisfy (\c -> ord c `elem` ([0..9] ++ [11,12] ++ [14..127]))
                   <?> "any ASCII character except CR and LF"
 
 -- |Match and return the obsolete \"utext\" syntax, which is identical
 -- to 'obs_text'.
 
-obs_utext       :: CharParser a String
+obs_utext       :: Stream s m Char => ParsecT s u m String
 obs_utext       = obs_text
 
 -- |Match the obsolete \"phrase\" syntax, which - unlike 'phrase' -
 -- allows dots between tokens.
 
-obs_phrase      :: CharParser a [String]
+obs_phrase      :: Stream s m Char => ParsecT s u m [String]
 obs_phrase      = do r1 <- word
                      r2 <- many $ choice [ word
                                          , string "."
@@ -979,7 +979,7 @@ obs_phrase      = do r1 <- word
 -- 'obs_phrase_list' separates the individual words by commas. This
 -- syntax is - as you will have guessed - obsolete.
 
-obs_phrase_list :: CharParser a [String]
+obs_phrase_list :: Stream s m Char => ParsecT s u m [String]
 obs_phrase_list = do r1 <- many1 (do r <- option [] phrase
                                      _ <- unfold $ char ','
                                      return (filter (/=[]) r))
@@ -994,7 +994,7 @@ obs_phrase_list = do r1 <- many1 (do r <- option [] phrase
 -- 'wsp' character, followed by an arbitrary number (including zero)
 -- of 'crlf' followed by at least one more 'wsp' character.
 
-obs_fws         :: CharParser a String
+obs_fws         :: Stream s m Char => ParsecT s u m String
 obs_fws         = do r1 <- many1 wsp
                      r2 <- many (do r3 <- crlf
                                     r4 <- many1 wsp
@@ -1006,13 +1006,13 @@ obs_fws         = do r1 <- many1 wsp
 
 -- |Parse a 'day_name' but allow for the obsolete folding syntax.
 
-obs_day_of_week :: CharParser a Day
+obs_day_of_week :: Stream s m Char => ParsecT s u m Day
 obs_day_of_week = unfold day_name <?> "day-of-the-week name"
 
 -- |Parse a 'year' but allow for a two-digit number (obsolete) and the
 -- obsolete folding syntax.
 
-obs_year        :: CharParser a Int
+obs_year        :: Stream s m Char => ParsecT s u m Int
 obs_year        = unfold (do r <- manyN 2 digit
                              return (normalize (read r :: Int)))
                   <?> "year"
@@ -1024,32 +1024,32 @@ obs_year        = unfold (do r <- manyN 2 digit
 
 -- |Parse a 'month_name' but allow for the obsolete folding syntax.
 
-obs_month       :: CharParser a Month
+obs_month       :: Stream s m Char => ParsecT s u m Month
 obs_month       = between cfws cfws month_name <?> "month name"
 
 -- |Parse a 'day' but allow for the obsolete folding syntax.
 
-obs_day         :: CharParser a Int
+obs_day         :: Stream s m Char => ParsecT s u m Int
 obs_day         = unfold day_of_month <?> "day"
 
 -- |Parse a 'hour' but allow for the obsolete folding syntax.
 
-obs_hour        :: CharParser a Int
+obs_hour        :: Stream s m Char => ParsecT s u m Int
 obs_hour        = unfold hour <?> "hour"
 
 -- |Parse a 'minute' but allow for the obsolete folding syntax.
 
-obs_minute      :: CharParser a Int
+obs_minute      :: Stream s m Char => ParsecT s u m Int
 obs_minute      = unfold minute <?> "minute"
 
 -- |Parse a 'second' but allow for the obsolete folding syntax.
 
-obs_second      :: CharParser a Int
+obs_second      :: Stream s m Char => ParsecT s u m Int
 obs_second      = unfold second <?> "second"
 
 -- |Match the obsolete zone names and return the appropriate offset.
 
-obs_zone        :: CharParser a Int
+obs_zone        :: Stream s m Char => ParsecT s u m Int
 obs_zone        = choice [ mkZone "UT"  0
                          , mkZone "GMT" 0
                          , mkZone "EST" (-5)
@@ -1079,7 +1079,7 @@ obs_zone        = choice [ mkZone "UT"  0
 -- >>> parse obs_angle_addr "" "<@example1.org,@example2.org:joe@example.org>"
 -- Right "<joe@example.org>"
 
-obs_angle_addr  :: CharParser a String
+obs_angle_addr  :: Stream s m Char => ParsecT s u m String
 obs_angle_addr  = unfold (do _ <- char '<'
                              _ <- option [] obs_route
                              addr <- addr_spec
@@ -1092,7 +1092,7 @@ obs_angle_addr  = unfold (do _ <- char '<'
 -- returns the list of 'String's that make up this route. Relies on
 -- 'obs_domain_list' for the actual parsing.
 
-obs_route       :: CharParser a [String]
+obs_route       :: Stream s m Char => ParsecT s u m [String]
 obs_route       = unfold (do { r <- obs_domain_list; _ <- char ':'; return r })
                   <?> "route of an obsolete angle address"
 
@@ -1100,7 +1100,7 @@ obs_route       = unfold (do { r <- obs_domain_list; _ <- char ':'; return r })
 -- with an \"at\". Multiple names are separated by a comma. The list of
 -- 'domain's is returned - and may be empty.
 
-obs_domain_list :: CharParser a [String]
+obs_domain_list :: Stream s m Char => ParsecT s u m [String]
 obs_domain_list = do _ <- char '@'
                      r1 <- domain
                      r2 <- many (do _ <- cfws <|> string ","
@@ -1114,7 +1114,7 @@ obs_domain_list = do _ <- char '@'
 -- more liberal insertion of folding whitespace and comments. The
 -- actual string is returned.
 
-obs_local_part  :: CharParser a String
+obs_local_part  :: Stream s m Char => ParsecT s u m String
 obs_local_part  = do r1 <- word
                      r2 <- many (do _ <- string "."
                                     r <- word
@@ -1126,7 +1126,7 @@ obs_local_part  = do r1 <- word
 -- liberal insertion of folding whitespace and comments. The actual
 -- string is returned.
 
-obs_domain      :: CharParser a String
+obs_domain      :: Stream s m Char => ParsecT s u m String
 obs_domain      = do r1 <- atom
                      r2 <- many (do _ <- string "."
                                     r <- atom
@@ -1152,7 +1152,7 @@ obs_domain      = do r1 <- atom
 -- unexpected end of input
 -- expecting obsolete syntax for a list of mailboxes
 
-obs_mbox_list   :: CharParser a [NameAddr]
+obs_mbox_list   :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_mbox_list   = do r1 <- many1 (try (do r <- maybeOption mailbox
                                           _ <- unfold $ char ','
                                           return r))
@@ -1166,7 +1166,7 @@ obs_mbox_list   = do r1 <- many1 (try (do r <- maybeOption mailbox
 -- parser will return a simple list of addresses; the grouping
 -- information is lost.
 
-obs_addr_list   :: CharParser a [NameAddr]
+obs_addr_list   :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_addr_list   = do r1 <- many1 (try (do r <- maybeOption address
                                           optional cfws
                                           _ <- char ','
@@ -1179,7 +1179,7 @@ obs_addr_list   = do r1 <- many1 (try (do r <- maybeOption address
 
 -- * Obsolete header fields (section 4.5)
 
-obs_fields      :: GenParser Char a [Field]
+obs_fields      :: Stream s m Char => ParsecT s u m [Field]
 obs_fields      = many (    try (do { r <- obs_from; return (From r) })
                         <|> try (do { r <- obs_sender; return (Sender r) })
                         <|> try (do { r <- obs_return; return (ReturnPath r) })
@@ -1213,7 +1213,7 @@ obs_fields      = many (    try (do { r <- obs_from; return (From r) })
 -- |Parse a 'date' header line but allow for the obsolete
 -- folding syntax.
 
-obs_orig_date   :: CharParser a CalendarTime
+obs_orig_date   :: Stream s m Char => ParsecT s u m CalendarTime
 obs_orig_date   = obs_header "Date" date_time
 
 
@@ -1222,19 +1222,19 @@ obs_orig_date   = obs_header "Date" date_time
 -- |Parse a 'from' header line but allow for the obsolete
 -- folding syntax.
 
-obs_from        :: CharParser a [NameAddr]
+obs_from        :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_from        = obs_header "From" mailbox_list
 
 -- |Parse a 'sender' header line but allow for the obsolete
 -- folding syntax.
 
-obs_sender      :: CharParser a NameAddr
+obs_sender      :: Stream s m Char => ParsecT s u m NameAddr
 obs_sender      = obs_header "Sender" mailbox
 
 -- |Parse a 'reply_to' header line but allow for the obsolete
 -- folding syntax.
 
-obs_reply_to    :: CharParser a [NameAddr]
+obs_reply_to    :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_reply_to    = obs_header "Reply-To" mailbox_list
 
 
@@ -1243,19 +1243,19 @@ obs_reply_to    = obs_header "Reply-To" mailbox_list
 -- |Parse a 'to' header line but allow for the obsolete
 -- folding syntax.
 
-obs_to          :: CharParser a [NameAddr]
+obs_to          :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_to          = obs_header "To" address_list
 
 -- |Parse a 'cc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_cc          :: CharParser a [NameAddr]
+obs_cc          :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_cc          = obs_header "Cc" address_list
 
 -- |Parse a 'bcc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_bcc         :: CharParser a [NameAddr]
+obs_bcc         :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_bcc         = header "Bcc" (    try address_list
                                     <|> do { optional cfws; return [] }
                                )
@@ -1266,13 +1266,13 @@ obs_bcc         = header "Bcc" (    try address_list
 -- |Parse a 'message_id' header line but allow for the obsolete
 -- folding syntax.
 
-obs_message_id  :: CharParser a String
+obs_message_id  :: Stream s m Char => ParsecT s u m String
 obs_message_id  = obs_header "Message-ID" msg_id
 
 -- |Parse an 'in_reply_to' header line but allow for the obsolete
 -- folding and the obsolete phrase syntax.
 
-obs_in_reply_to :: CharParser a [String]
+obs_in_reply_to :: Stream s m Char => ParsecT s u m [String]
 obs_in_reply_to = obs_header "In-Reply-To" (do r <- many (    do {_ <- phrase; return [] }
                                                           <|> msg_id
                                                          )
@@ -1281,7 +1281,7 @@ obs_in_reply_to = obs_header "In-Reply-To" (do r <- many (    do {_ <- phrase; r
 -- |Parse a 'references' header line but allow for the obsolete
 -- folding and the obsolete phrase syntax.
 
-obs_references  :: CharParser a [String]
+obs_references  :: Stream s m Char => ParsecT s u m [String]
 obs_references  = obs_header "References" (do r <- many (    do { _ <- phrase; return [] }
                                                          <|> msg_id
                                                         )
@@ -1290,13 +1290,13 @@ obs_references  = obs_header "References" (do r <- many (    do { _ <- phrase; r
 -- |Parses the \"left part\" of a message ID, but allows the obsolete
 -- syntax, which is identical to a 'local_part'.
 
-obs_id_left     :: CharParser a String
+obs_id_left     :: Stream s m Char => ParsecT s u m String
 obs_id_left     = local_part <?> "left part of an message ID"
 
 -- |Parses the \"right part\" of a message ID, but allows the obsolete
 -- syntax, which is identical to a 'domain'.
 
-obs_id_right    :: CharParser a String
+obs_id_right    :: Stream s m Char => ParsecT s u m String
 obs_id_right    = domain <?> "right part of an message ID"
 
 
@@ -1306,19 +1306,19 @@ obs_id_right    = domain <?> "right part of an message ID"
 -- |Parse a 'subject' header line but allow for the obsolete
 -- folding syntax.
 
-obs_subject     :: CharParser a String
+obs_subject     :: Stream s m Char => ParsecT s u m String
 obs_subject     = obs_header "Subject" unstructured
 
 -- |Parse a 'comments' header line but allow for the obsolete
 -- folding syntax.
 
-obs_comments    :: CharParser a String
+obs_comments    :: Stream s m Char => ParsecT s u m String
 obs_comments    = obs_header "Comments" unstructured
 
 -- |Parse a 'keywords' header line but allow for the obsolete
 -- folding syntax. Also, this parser accepts 'obs_phrase_list'.
 
-obs_keywords    :: CharParser a [String]
+obs_keywords    :: Stream s m Char => ParsecT s u m [String]
 obs_keywords    = obs_header "Keywords" obs_phrase_list
 
 
@@ -1327,37 +1327,37 @@ obs_keywords    = obs_header "Keywords" obs_phrase_list
 -- |Parse a 'resent_from' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_from :: CharParser a [NameAddr]
+obs_resent_from :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_resent_from = obs_header "Resent-From" mailbox_list
 
 -- |Parse a 'resent_sender' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_send :: CharParser a NameAddr
+obs_resent_send :: Stream s m Char => ParsecT s u m NameAddr
 obs_resent_send = obs_header "Resent-Sender" mailbox
 
 -- |Parse a 'resent_date' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_date :: CharParser a CalendarTime
+obs_resent_date :: Stream s m Char => ParsecT s u m CalendarTime
 obs_resent_date = obs_header "Resent-Date" date_time
 
 -- |Parse a 'resent_to' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_to   :: CharParser a [NameAddr]
+obs_resent_to   :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_resent_to   = obs_header "Resent-To" mailbox_list
 
 -- |Parse a 'resent_cc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_cc   :: CharParser a [NameAddr]
+obs_resent_cc   :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_resent_cc   = obs_header "Resent-Cc" mailbox_list
 
 -- |Parse a 'resent_bcc' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_bcc  :: CharParser a [NameAddr]
+obs_resent_bcc  :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_resent_bcc  = obs_header "Bcc" (    try address_list
                                     <|> do { optional cfws; return [] }
                                    )
@@ -1365,34 +1365,34 @@ obs_resent_bcc  = obs_header "Bcc" (    try address_list
 -- |Parse a 'resent_msg_id' header line but allow for the obsolete
 -- folding syntax.
 
-obs_resent_mid  :: CharParser a String
+obs_resent_mid  :: Stream s m Char => ParsecT s u m String
 obs_resent_mid  = obs_header "Resent-Message-ID" msg_id
 
 -- |Parse a @Resent-Reply-To@ header line but allow for the
 -- obsolete folding syntax.
 
-obs_resent_reply :: CharParser a [NameAddr]
+obs_resent_reply :: Stream s m Char => ParsecT s u m [NameAddr]
 obs_resent_reply = obs_header "Resent-Reply-To" address_list
 
 
 -- ** Obsolete trace fields (section 4.5.7)
 
-obs_return      :: CharParser a String
+obs_return      :: Stream s m Char => ParsecT s u m String
 obs_return       = obs_header "Return-Path" path
 
-obs_received    :: CharParser a [(String, String)]
+obs_received    :: Stream s m Char => ParsecT s u m [(String, String)]
 obs_received     = obs_header "Received" name_val_list
 
 -- |Match 'obs_angle_addr'.
 
-obs_path        :: CharParser a String
+obs_path        :: Stream s m Char => ParsecT s u m String
 obs_path        = obs_angle_addr
 
 -- |This parser is identical to 'optional_field' but allows the more
 -- liberal line-folding syntax between the \"field_name\" and the \"field
 -- text\".
 
-obs_optional    :: CharParser a (String,String)
+obs_optional    :: Stream s m Char => ParsecT s u m (String,String)
 obs_optional    = do n <- field_name
                      _ <- many wsp
                      _ <- char ':'

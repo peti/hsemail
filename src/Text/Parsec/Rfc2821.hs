@@ -1,5 +1,6 @@
+{-# LANGUAGE FlexibleContexts #-}
 {- |
-   Module      :  Text.ParserCombinators.Parsec.Rfc2821
+   Module      :  Text.Parsec.Rfc2821
    Copyright   :  (c) 2013 Peter Simons
    License     :  BSD3
 
@@ -12,14 +13,15 @@
    <http://www.faqs.org/rfcs/rfc2821.html>.
 -}
 
-module Text.ParserCombinators.Parsec.Rfc2821 where
+module Text.Parsec.Rfc2821 where
 
+import Control.Monad.Identity
 import Control.Exception ( assert )
 import Control.Monad.State
-import Text.ParserCombinators.Parsec
+import Text.Parsec hiding (crlf)
 import Data.List ( intercalate )
 import Data.Char ( toLower )
-import Text.ParserCombinators.Parsec.Rfc2234
+import Text.Parsec.Rfc2234
 
 -- Customize hlint ...
 {-# ANN module "HLint: ignore Use camelCase" #-}
@@ -321,13 +323,13 @@ isShutdown _                                              = False
 -- specified in RFC2821, so I won't document them
 -- individually.
 
-type SmtpParser st = CharParser st SmtpCmd
+-- type SmtpParser s u m = Stream s m Char => ParsecT s u m SmtpCmd
 
 -- |This parser recognizes any of the SMTP commands defined
 -- below. Note that /all/ command parsers expect their input
 -- to be terminated with 'crlf'.
 
-smtpCmd :: SmtpParser st
+smtpCmd :: Stream s m Char => ParsecT s u m SmtpCmd
 smtpCmd = choice
           [ smtpData, rset, noop, quit, turn
           , helo, mail, rcpt, send, soml, saml
@@ -335,13 +337,13 @@ smtpCmd = choice
           ]
 
 -- |The parser name \"data\" was taken.
-smtpData :: SmtpParser st
-rset, quit, turn, helo, ehlo, mail :: SmtpParser st
-rcpt, send, soml, saml, vrfy, expn :: SmtpParser st
-help                               :: SmtpParser st
+smtpData :: Stream s m Char => ParsecT s u m SmtpCmd
+rset, quit, turn, helo, ehlo, mail :: Stream s m Char => ParsecT s u m SmtpCmd
+rcpt, send, soml, saml, vrfy, expn :: Stream s m Char => ParsecT s u m SmtpCmd
+help                               :: Stream s m Char => ParsecT s u m SmtpCmd
 
 -- |May have an optional 'word' argument, but it is ignored.
-noop :: SmtpParser st
+noop :: Stream s m Char => ParsecT s u m SmtpCmd
 
 smtpData = mkCmd0 "DATA" Data
 rset = mkCmd0 "RSET" Rset
@@ -368,19 +370,19 @@ noop = try (mkCmd0 "NOOP" Noop) <|>
 -- * Argument Parsers
 ----------------------------------------------------------------------
 
-from_path :: CharParser st Mailbox
+from_path :: Stream s m Char => ParsecT s u m Mailbox
 from_path = do
   caseString "from:"
   (try (string "<>" >> return nullPath) <|> path)
                                 <?> "from-path"
 
-to_path :: CharParser st Mailbox
+to_path :: Stream s m Char => ParsecT s u m Mailbox
 to_path = do
   caseString "to:"
   (try (caseString "<postmaster>" >> return postmaster)
      <|> path)                  <?> "to-path"
 
-path :: CharParser st Mailbox
+path :: Stream s m Char => ParsecT s u m Mailbox
 path = between (char '<') (char '>') (p <?> "path")
   where
   p = do
@@ -388,7 +390,7 @@ path = between (char '<') (char '>') (p <?> "path")
     (Mailbox _ l d) <- mailbox
     return (Mailbox r1 l d)
 
-mailbox :: CharParser st Mailbox
+mailbox :: Stream s m Char => ParsecT s u m Mailbox
 mailbox = p <?> "mailbox"
   where
   p = do
@@ -397,31 +399,31 @@ mailbox = p <?> "mailbox"
     r2 <- domain
     return (Mailbox [] r1 r2)
 
-local_part :: CharParser st String
+local_part :: Stream s m Char => ParsecT s u m String
 local_part = (dot_string <|> quoted_string) <?> "local-part"
 
-domain :: CharParser st String
+domain :: Stream s m Char => ParsecT s u m String
 domain = choice
          [ tokenList subdomain '.'  <?> "domain"
          , address_literal          <?> "address literal"
          ]
 
-a_d_l :: CharParser st [String]
+a_d_l :: Stream s m Char => ParsecT s u m [String]
 a_d_l = sepBy1 at_domain (char ',') <?> "route-list"
 
-at_domain :: CharParser st String
+at_domain :: Stream s m Char => ParsecT s u m String
 at_domain = (char '@' >> domain) <?> "at-domain"
 
 -- |/TODO/: Add IPv6 address and general literals
-address_literal :: CharParser st String
+address_literal :: Stream s m Char => ParsecT s u m String
 address_literal = ipv4_literal  <?> "IPv4 address literal"
 
-ipv4_literal :: CharParser st String
+ipv4_literal :: Stream s m Char => ParsecT s u m String
 ipv4_literal = do
   rs <- between (char '[') (char ']') ipv4addr
   return ('[': reverse (']': reverse rs))
 
-ipv4addr :: CharParser st String
+ipv4addr :: Stream s m Char => ParsecT s u m String
 ipv4addr = p <?> "IPv4 address literal"
   where
   p = do
@@ -431,7 +433,7 @@ ipv4addr = p <?> "IPv4 address literal"
     r4 <- char '.' >> snum
     return (r1 ++ "." ++ r2 ++ "." ++ r3 ++ "." ++ r4)
 
-subdomain :: CharParser st String
+subdomain :: Stream s m Char => ParsecT s u m String
 subdomain = p <?> "domain name"
   where
   p = do
@@ -440,28 +442,28 @@ subdomain = p <?> "domain name"
         then fail "subdomain must not end with hyphen"
         else return r
 
-dot_string :: CharParser st String
+dot_string :: Stream s m Char => ParsecT s u m String
 dot_string = tokenList atom '.' <?> "dot_string"
 
-atom :: CharParser a String
+atom :: Stream s m Char => ParsecT s u m String
 atom = many1 atext              <?> "atom"
   where
   atext = alpha <|> digit <|> oneOf "!#$%&'*+-/=?^_`{|}~"
 
-snum :: CharParser st String
+snum :: Stream s m Char => ParsecT s u m String
 snum = do
   r <- manyNtoM 1 3 digit
   if (read r :: Int) > 255
      then fail "IP address parts must be 0 <= x <= 255"
      else return r
 
-number :: CharParser st String
+number :: Stream s m Char => ParsecT s u m String
 number = many1 digit
 
 -- |This is a useful addition: The parser accepts an 'atom'
 -- or a 'quoted_string'.
 
-word :: CharParser st String
+word :: Stream s m Char => ParsecT s u m String
 word = (atom <|> fmap show quoted_string)
        <?> "word or quoted-string"
 
@@ -486,7 +488,7 @@ fixCRLF      [ ]        = "\r\n"
 -- |Construct a parser for a command without arguments.
 -- Expects 'crlf'!
 
-mkCmd0 :: String -> a -> CharParser st a
+mkCmd0 :: Stream s m Char => String -> a -> ParsecT s u m a
 mkCmd0 str cons = (do
   try (caseString str)
   _ <- skipMany wsp >> crlf
@@ -497,8 +499,8 @@ mkCmd0 str cons = (do
 -- parser will be applied to the type constructor before it
 -- is returned. Expects 'crlf'!
 
-mkCmd1 :: String -> (a -> SmtpCmd) -> CharParser st a
-       -> CharParser st SmtpCmd
+mkCmd1 :: Stream s m Char => String -> (a -> SmtpCmd) -> ParsecT s u m a
+       -> ParsecT s u m SmtpCmd
 mkCmd1 str cons p = do
   try (caseString str)
   _ <- wsp
@@ -506,7 +508,7 @@ mkCmd1 str cons p = do
   st <- getState
   let eol = skipMany wsp >> crlf
       p'  = between (many wsp) eol p <?> str
-      r   = runParser p' st "" input
+  r <- lift $ runParserT p' st "" input
   case r of
     Left e  -> return (WrongArg str e)
     Right a -> return (cons a)
@@ -515,6 +517,6 @@ mkCmd1 str cons p = do
 -- \"@p.p@\", or \"@p.p.p@\", and so on. Used in 'domain'
 -- and 'dot_string', for example.
 
-tokenList :: CharParser st String -> Char
-          -> CharParser st String
+tokenList :: Stream s m Char => ParsecT s u m String -> Char
+          -> ParsecT s u m String
 tokenList p c = fmap (intercalate [c]) (sepBy1 p (char c))
