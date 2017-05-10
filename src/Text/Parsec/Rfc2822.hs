@@ -33,7 +33,7 @@ import Text.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
 -- @optionMaybe@, but ghc-6.6.1 apparently doesn't have it.
 
 maybeOption    :: Stream s m Char => ParsecT s u m a -> ParsecT s u m (Maybe a)
-maybeOption p   = option Nothing (liftM Just p)
+maybeOption p   = option Nothing (fmap Just p)
 
 -- |@unfold@ @=@ @between (optional cfws) (optional cfws)@
 

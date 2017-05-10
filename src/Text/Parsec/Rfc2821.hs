@@ -160,25 +160,24 @@ data SmtpCmd
       -- is, obviously, the error description.
 
 instance Show SmtpCmd where
-  show (Helo str)    = "HELO " ++ str
-  show (Ehlo str)    = "EHLO " ++ str
-  show (MailFrom mbox) = "MAIL FROM:" ++ show mbox
-  show (RcptTo mbox) = "RCPT TO:" ++ show mbox
-  show (Data)        = "DATA"
-  show (Rset)        = "RSET"
-  show (Send mbox)   = "SEND " ++ show mbox
-  show (Soml mbox)   = "SOML " ++ show mbox
-  show (Saml mbox)   = "SAML " ++ show mbox
-  show (Vrfy str)    = "VRFY " ++ str
-  show (Expn str)    = "EXPN " ++ str
-  show (Noop)        = "NOOP"
-  show (Quit)        = "QUIT"
-  show (Turn)        = "TURN"
+  show (Helo str)       = "HELO " ++ str
+  show (Ehlo str)       = "EHLO " ++ str
+  show (MailFrom mbox)  = "MAIL FROM:" ++ show mbox
+  show (RcptTo mbox)    = "RCPT TO:" ++ show mbox
+  show Data             = "DATA"
+  show Rset             = "RSET"
+  show (Send mbox)      = "SEND " ++ show mbox
+  show (Soml mbox)      = "SOML " ++ show mbox
+  show (Saml mbox)      = "SAML " ++ show mbox
+  show (Vrfy str)       = "VRFY " ++ str
+  show (Expn str)       = "EXPN " ++ str
+  show Noop             = "NOOP"
+  show Quit             = "QUIT"
+  show Turn             = "TURN"
   show (Help t)
-    | null t         = "HELP"
-    | otherwise      = "HELP " ++ t
-  show (WrongArg str _) =
-    "Syntax error in argument of " ++ str ++ "."
+    | null t            = "HELP"
+    | otherwise         = "HELP " ++ t
+  show (WrongArg str _) = "Syntax error in argument of " ++ str ++ "."
 
 -- |The most general e-mail address has the form:
 -- @\<[\@route,...:]user\@domain\>@. This type, too,
