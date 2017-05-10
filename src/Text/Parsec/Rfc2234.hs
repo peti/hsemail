@@ -17,10 +17,10 @@
 
 module Text.Parsec.Rfc2234 where
 
+import Control.Monad ( liftM2, replicateM )
+import Data.Char ( toUpper, chr, ord )
 import Text.Parsec hiding (crlf)
 import qualified Text.Parsec.String as PS
-import Data.Char ( toUpper, chr, ord )
-import Control.Monad ( liftM2, replicateM )
 
 -- Customize hlint ...
 {-# ANN module "HLint: ignore Use camelCase" #-}

@@ -15,12 +15,13 @@
 
 module Text.Parsec.Rfc2821 where
 
+import Text.Parsec.Rfc2234
+
 import Control.Exception ( assert )
 import Control.Monad.State
-import Text.Parsec hiding (crlf)
-import Data.List ( intercalate )
 import Data.Char ( toLower )
-import Text.Parsec.Rfc2234
+import Data.List ( intercalate )
+import Text.Parsec hiding (crlf)
 
 -- Customize hlint ...
 {-# ANN module "HLint: ignore Use camelCase" #-}

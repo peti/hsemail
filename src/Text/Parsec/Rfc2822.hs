@@ -15,13 +15,15 @@
 
 module Text.Parsec.Rfc2822 where
 
-import System.Time
+import Text.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
+
+import Control.Monad ( replicateM )
 import Data.Char ( ord )
 import Data.List ( intercalate )
 import Data.Maybe ( catMaybes )
-import Control.Monad ( liftM, replicateM )
+import Data.Monoid ( Monoid, mempty )
+import System.Time
 import Text.Parsec hiding (crlf)
-import Text.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
 
 -- Customize hlint ...
 {-# ANN module "HLint: ignore Use camelCase" #-}
