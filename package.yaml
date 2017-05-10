@@ -1,8 +1,9 @@
 name:           hsemail
-version:        1.7.8
-synopsis:       Internet Message Parsers
+version:        "2"
+synopsis:       Parsec parsers for the RFC2822 Internet Message format
 author:
   - Peter Simons
+  - Ali Abrar
   - Gero Kriependorf
   - Marty Pauley
 maintainer:     Peter Simons <simons@cryp.to>
@@ -12,22 +13,22 @@ github:         peti/hsemail
 category:       Parsing
 stability:      stable
 tested-with:    GHC > 7.4 && < 8.1
-description:    Parsers for the Internt Message syntax defined in RFC2821 and 2822.
+description:    Parsec parsers for the Internet Message format defined in RFC 2821 and 2822.
 
 ghc-options:    -Wall
 
 dependencies:
   - base >= 3 && < 5
   - old-time
-  - parsec
+  - parsec >= 3.1
   - mtl
 
 library:
   source-dirs: src
   exposed-modules:
-    - Text.ParserCombinators.Parsec.Rfc2234
-    - Text.ParserCombinators.Parsec.Rfc2821
-    - Text.ParserCombinators.Parsec.Rfc2822
+    - Text.Parsec.Rfc2234
+    - Text.Parsec.Rfc2821
+    - Text.Parsec.Rfc2822
 
 tests:
   test-hsemail:
