@@ -34,9 +34,9 @@ library
     , parsec
     , mtl
   exposed-modules:
-      Text.ParserCombinators.Parsec.Rfc2234
-      Text.ParserCombinators.Parsec.Rfc2821
-      Text.ParserCombinators.Parsec.Rfc2822
+      Text.Parsec.Rfc2234
+      Text.Parsec.Rfc2821
+      Text.Parsec.Rfc2822
   other-modules:
       Paths_hsemail
   default-language: Haskell2010

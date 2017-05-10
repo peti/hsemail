@@ -2,18 +2,19 @@ module Main ( main ) where
 
 import Test.Hspec
 import System.Time ( CalendarTime(..), Month(..), Day(..) )
-import Text.ParserCombinators.Parsec ( parse, eof, CharParser )
-import Text.ParserCombinators.Parsec.Rfc2822
+import Text.Parsec ( parse, eof )
+import Text.Parsec.String ( Parser )
+import Text.Parsec.Rfc2822
 
-parseTest :: CharParser () a -> String -> IO a
+parseTest :: Parser a -> String -> IO a
 parseTest p input = case parse (do { r <- p; eof; return r }) (show input) input of
                       Left err -> fail ("parse error at " ++ show err)
                       Right r -> return r
 
-parseIdemTest :: CharParser () String -> String -> Expectation
+parseIdemTest :: Parser String -> String -> Expectation
 parseIdemTest p input = parseTest p input `shouldReturn` input
 
-parseFailure :: (Show a) => CharParser () a -> String -> Expectation
+parseFailure :: (Show a) => Parser a -> String -> Expectation
 parseFailure p input = parse (do { r <- p; eof; return r }) (show input) input `shouldSatisfy` failure
   where
     failure (Left _) = True
