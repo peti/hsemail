@@ -12,7 +12,7 @@ license-file:   LICENSE
 github:         peti/hsemail
 category:       Parsing
 stability:      stable
-tested-with:    GHC > 7.8 && < 8.1
+tested-with:    GHC == 7.0.4, GHC > 7.4 && < 8.1
 description:    Parsec parsers for the Internet Message format defined in RFC 2821 and 2822.
 
 ghc-options:    -Wall
