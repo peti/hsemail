@@ -49,7 +49,6 @@ test-suite test-hsemail
       base >= 3 && < 5
     , old-time
     , parsec >= 3.1
-    , mtl
     , hspec
     , hsemail
   default-language: Haskell2010
