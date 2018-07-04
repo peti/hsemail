@@ -143,13 +143,13 @@ atext           :: Stream s m Char => ParsecT s u m Char
 atext           = alpha <|> digit <|> oneOf "!#$%&'*+-/=?^_`{|}~"
                   <?> "US-ASCII character (excluding controls, space, and specials)"
 
--- |Match one or more 'atext' characters and skip any preceeding or
+-- |Match one or more 'atext' characters and skip any preceding or
 -- trailing 'cfws'.
 
 atom            :: Stream s m Char => ParsecT s u m String
 atom            = unfold (many1 atext <?> "atom")
 
--- |Match 'dot_atom_text' and skip any preceeding or trailing 'cfws'.
+-- |Match 'dot_atom_text' and skip any preceding or trailing 'cfws'.
 
 dot_atom        :: Stream s m Char => ParsecT s u m String
 dot_atom        = unfold (dot_atom_text <?> "dot atom")
@@ -177,7 +177,7 @@ qcontent        = many1 qtext <|> quoted_pair
                   <?> "quoted string content"
 
 -- |Match any number of 'qcontent' between double quotes. Any 'cfws'
--- preceeding or following the \"atom\" is skipped automatically.
+-- preceding or following the \"atom\" is skipped automatically.
 
 quoted_string   :: Stream s m Char => ParsecT s u m String
 quoted_string   = unfold (do _ <- dquote
@@ -542,7 +542,7 @@ dtext           = no_ws_ctl
 
 -- * Overall message syntax (section 3.5)
 
--- |This data type repesents a parsed Internet Message as defined in
+-- |This data type represents a parsed Internet Message as defined in
 -- this RFC. It consists of an arbitrary number of header lines,
 -- represented in the 'Field' data type, and a message body, which may
 -- be empty.
@@ -749,7 +749,7 @@ id_right        :: Stream s m Char => ParsecT s u m String
 id_right        = dot_atom_text <|> no_fold_literal
                   <?> "right part of an message ID"
 
--- |Parse one or more occurences of 'qtext' or 'quoted_pair' and
+-- |Parse one or more occurrences of 'qtext' or 'quoted_pair' and
 -- return the concatenated string. This makes up the 'id_left' of a
 -- 'msg_id'.
 
@@ -760,7 +760,7 @@ no_fold_quote   = do _ <- dquote
                      return ("\"" ++ concat r ++ "\"")
                   <?> "non-folding quoted string"
 
--- |Parse one or more occurences of 'dtext' or 'quoted_pair' and
+-- |Parse one or more occurrences of 'dtext' or 'quoted_pair' and
 -- return the concatenated string. This makes up the 'id_right' of a
 -- 'msg_id'.
 
