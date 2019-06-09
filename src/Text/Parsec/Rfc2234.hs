@@ -1,7 +1,6 @@
-{-# LANGUAGE FlexibleContexts #-}
 {- |
    Module      :  Text.Parsec.Rfc2234
-   Copyright   :  (c) 2013 Peter Simons
+   Copyright   :  (c) 2007-2019 Peter Simons
    License     :  BSD3
 
    Maintainer  :  simons@cryp.to
@@ -14,6 +13,8 @@
    terminal called @char@ in the RFC is called 'character'
    here to avoid conflicts with Parsec's 'char' function.
  -}
+
+{-# LANGUAGE FlexibleContexts #-}
 
 module Text.Parsec.Rfc2234 where
 

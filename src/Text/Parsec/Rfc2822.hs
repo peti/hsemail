@@ -1,17 +1,17 @@
-{-# LANGUAGE FlexibleContexts #-}
 {- |
    Module      :  Text.Parsec.Rfc2822
-   Copyright   :  (c) 2013 Peter Simons
+   Copyright   :  (c) 2007-2019 Peter Simons
    License     :  BSD3
 
    Maintainer  :  simons@cryp.to
    Stability   :  provisional
    Portability :  portable
 
-   This module provides parsers for the grammar defined in
-   RFC2822, \"Internet Message Format\",
-   <http://www.faqs.org/rfcs/rfc2822.html>.
+   This module provides parsers for the grammar defined in RFC2822,
+   \"Internet Message Format\", <http://www.faqs.org/rfcs/rfc2822.html>.
 -}
+
+{-# LANGUAGE FlexibleContexts #-}
 
 module Text.Parsec.Rfc2822 where
 
