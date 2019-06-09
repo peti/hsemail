@@ -1,17 +1,17 @@
-{-# LANGUAGE FlexibleContexts #-}
 {- |
    Module      :  Text.Parsec.Rfc2821
-   Copyright   :  (c) 2013 Peter Simons
+   Copyright   :  (c) 2007-2019 Peter Simons
    License     :  BSD3
 
    Maintainer  :  simons@cryp.to
    Stability   :  provisional
    Portability :  portable
 
-   This module exports parser combinators for the grammar
-   described in RFC2821, \"Simple Mail Transfer Protocol\",
-   <http://www.faqs.org/rfcs/rfc2821.html>.
--}
+   This module exports parser combinators for the grammar described in RFC2821,
+   \"Simple Mail Transfer Protocol\", <http://www.faqs.org/rfcs/rfc2821.html>.
+ -}
+
+{-# LANGUAGE FlexibleContexts #-}
 
 module Text.Parsec.Rfc2821 where
 
@@ -27,117 +27,13 @@ import Text.Parsec hiding (crlf)
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
 ----------------------------------------------------------------------
--- * ESMTP State Machine
+-- * Data Types for ESMTP Commands
 ----------------------------------------------------------------------
 
-data SessionState
-  = Unknown
-  | HaveHelo
-  | HaveMailFrom
-  | HaveRcptTo
-  | HaveData
-  | HaveQuit
-  deriving (Enum, Bounded, Eq, Ord, Show)
+-- | The 'smtpCmd' parser will create this data type from a string. Note that
+-- /all/ command parsers expect their input to be terminated with 'crlf'.
 
-data Event
-  = Greeting                    -- ^ reserved for the user
-  | SayHelo       String
-  | SayHeloAgain  String
-  | SayEhlo       String
-  | SayEhloAgain  String
-  | SetMailFrom   Mailbox
-  | AddRcptTo     Mailbox
-  | StartData
-  | Deliver                     -- ^ reserved for the user
-  | NeedHeloFirst
-  | NeedMailFromFirst
-  | NeedRcptToFirst
-  | NotImplemened
-        -- ^ 'Turn', 'Send', 'Soml', 'Saml', 'Vrfy', and 'Expn'.
-  | ResetState
-  | SayOK
-        -- ^ Triggered in case of 'Noop' or when 'Rset' is
-        -- used before we even have a state.
-  | SeeksHelp     String
-        -- ^ The parameter may be @[]@.
-  | Shutdown
-  | SyntaxErrorIn String
-  | Unrecognized  String
-  deriving (Eq, Show)
-
-type SmtpdFSM = Control.Monad.State.State SessionState Event
-
--- |Parse a line of SMTP dialogue and run 'handleSmtpCmd' to
--- determine the 'Event'. In case of syntax errors,
--- 'SyntaxErrorIn' or 'Unrecognized' will be returned.
--- Inputs must be terminated with 'crlf'. See 'fixCRLF'.
-
-smtpdFSM :: String -> SmtpdFSM
-smtpdFSM str = either
-                 (\_ -> return (Unrecognized str))
-                 handleSmtpCmd
-                 (parse smtpCmd "" str)
-
--- |For those who want to parse the 'SmtpCmd' themselves.
--- Calling this function in 'HaveQuit' or 'HaveData' will
--- fail an assertion. If 'assert' is disabled, it will
--- return respectively 'Shutdown' and 'StartData' again.
-
-handleSmtpCmd :: SmtpCmd -> SmtpdFSM
-handleSmtpCmd cmd = get >>= \st -> match st cmd
-  where
-  match :: SessionState -> SmtpCmd -> SmtpdFSM
-  match HaveQuit     _       = assert False (event Shutdown)
-  match HaveData     _       = assert False (trans (HaveData, StartData))
-  match    _  (WrongArg c _) = event (SyntaxErrorIn c)
-  match    _        Quit     = trans (HaveQuit, Shutdown)
-  match    _        Noop     = event SayOK
-  match    _        Turn     = event NotImplemened
-
-  match    _      (Send _)   = event NotImplemened
-  match    _      (Soml _)   = event NotImplemened
-  match    _      (Saml _)   = event NotImplemened
-  match    _      (Vrfy _)   = event NotImplemened
-  match    _      (Expn _)   = event NotImplemened
-  match    _      (Help x)   = event (SeeksHelp x)
-
-  match Unknown    Rset      = event SayOK
-  match HaveHelo   Rset      = event SayOK
-  match    _       Rset      = trans (HaveHelo, ResetState)
-
-  match Unknown   (Helo x)   = trans (HaveHelo, SayHelo x)
-  match    _      (Helo x)   = trans (HaveHelo, SayHeloAgain x)
-  match Unknown   (Ehlo x)   = trans (HaveHelo, SayEhlo x)
-  match    _      (Ehlo x)   = trans (HaveHelo, SayEhloAgain x)
-
-  match Unknown (MailFrom _) = event NeedHeloFirst
-  match    _    (MailFrom x) = trans (HaveMailFrom, SetMailFrom x)
-
-  match Unknown  (RcptTo _)  = event NeedHeloFirst
-  match HaveHelo (RcptTo _)  = event NeedMailFromFirst
-  match    _     (RcptTo x)  = trans (HaveRcptTo, AddRcptTo x)
-
-  match Unknown       Data   = event NeedHeloFirst
-  match HaveHelo      Data   = event NeedMailFromFirst
-  match HaveMailFrom  Data   = event NeedRcptToFirst
-  match HaveRcptTo    Data   = trans (HaveData, StartData)
-
-  event :: Event -> SmtpdFSM
-  event = return
-
-  trans :: (SessionState, Event) -> SmtpdFSM
-  trans (st,e) = put st >> event e
-
-
-----------------------------------------------------------------------
--- * Data Types for SMTP Commands
-----------------------------------------------------------------------
-
--- |The 'smtpCmd' parser will create this data type from a
--- string. Note that /all/ command parsers expect their
--- input to be terminated with 'crlf'.
-
-data SmtpCmd
+data EsmtpCmd
   = Helo String
   | Ehlo String
   | MailFrom Mailbox            -- ^ Might be 'nullPath'.
@@ -160,7 +56,7 @@ data SmtpCmd
       -- command (in all upper-case) and the 'ParseError'
       -- is, obviously, the error description.
 
-instance Show SmtpCmd where
+instance Show EsmtpCmd where
   show (Helo str)       = "HELO " ++ str
   show (Ehlo str)       = "EHLO " ++ str
   show (MailFrom mbox)  = "MAIL FROM:" ++ show mbox
@@ -180,11 +76,11 @@ instance Show SmtpCmd where
     | otherwise         = "HELP " ++ t
   show (WrongArg str _) = "Syntax error in argument of " ++ str ++ "."
 
--- |The most general e-mail address has the form:
--- @\<[\@route,...:]user\@domain\>@. This type, too,
--- supports 'show' and 'read'. Note that a \"shown\" address
--- is /always/ enclosed in angular brackets. When comparing
--- two mailboxes for equality, the hostname is case-insensitive.
+-- | The most general e-mail address has the form:
+-- @\<[\@route,...:]user\@domain\>@. This type, too, supports 'show' and
+-- 'read'. Note that a \"shown\" address is /always/ enclosed in angular
+-- brackets. When comparing two mailboxes for equality, the hostname is
+-- case-insensitive.
 
 data Mailbox = Mailbox [String] String String
 
@@ -205,27 +101,26 @@ instance Read Mailbox where
   readsPrec _ = parsec2read (path <|> mailbox)
   readList    = error "reading [Mailbox] is not supported"
 
--- |@nullPath@ @=@ @'Mailbox' [] \"\" \"\" = \"\<\>\"@
+-- | @nullPath@ @=@ @'Mailbox' [] \"\" \"\" = \"\<\>\"@
 
 nullPath :: Mailbox
 nullPath = Mailbox [] [] []
 
--- |@postmaster@ @=@ @'Mailbox' [] \"postmaster\" \"\" = \"\<postmaster\>\"@
+-- | @postmaster@ @=@ @'Mailbox' [] \"postmaster\" \"\" = \"\<postmaster\>\"@
 
 postmaster :: Mailbox
 postmaster = Mailbox [] "postmaster" []
 
 
 ----------------------------------------------------------------------
--- * Data Types for SMTP Replies
+-- * Data Types for ESMTP Replies
 ----------------------------------------------------------------------
 
--- |An SMTP reply is a three-digit return code plus some waste of
--- bandwidth called \"comments\". This is what the list of strings is
--- for; one string per line in the reply. 'show' will append an
--- \"@\\r\\n@\" end-of-line marker to each entry in that list, so that
--- the resulting string is ready to be sent back to the peer. For
--- example:
+-- | An ESMTP reply is a three-digit return code plus some waste of bandwidth
+-- called \"comments\". This is what the list of strings is for; one string per
+-- line in the reply. 'show' will append an \"@\\r\\n@\" end-of-line marker to
+-- each entry in that list, so that the resulting string is ready to be sent
+-- back to the peer. For example:
 --
 -- >>> show $ Reply (Code Success MailSystem 0) ["worked", "like", "a charm" ]
 -- "250-worked\r\n250-like\r\n250 a charm\r\n"
@@ -235,9 +130,9 @@ postmaster = Mailbox [] "postmaster" []
 -- >>> show $ Reply (Code Success MailSystem 0) []
 -- "250 Success in category MailSystem\r\n"
 
-data SmtpReply = Reply SmtpCode [String]
+data EsmtpReply = Reply EsmtpCode [String]
 
-data SmtpCode = Code SuccessCode Category Int
+data EsmtpCode = Code SuccessCode Category Int
 
 data SuccessCode
   = Unused0
@@ -257,7 +152,7 @@ data Category
   | MailSystem
   deriving (Enum, Bounded, Eq, Ord, Show)
 
-instance Show SmtpReply where
+instance Show EsmtpReply where
   show (Reply c@(Code suc cat _) []) =
     let msg = show suc ++ " in category " ++ show cat
     in
@@ -274,42 +169,40 @@ instance Show SmtpReply where
     in
     concat msg'
 
-instance Show SmtpCode where
+instance Show EsmtpCode where
   show (Code suc cat n) =
     assert (n >= 0 && n <= 9) $
       (show . fromEnum) suc ++ (show . fromEnum) cat ++ show n
 
--- |Construct a 'Reply'. Fails 'assert' if invalid numbers
--- are given.
+-- | Construct a 'Reply'. Fails 'assert' if invalid numbers are given.
 
-reply :: Int -> Int -> Int -> [String] -> SmtpReply
+reply :: Int -> Int -> Int -> [String] -> EsmtpReply
 reply suc c n msg =
   assert (suc >= 0 && suc <= 5) $
     assert (c >= 0 && c <= 5)   $
       assert (n >= 0 && n <= 9) $
         Reply (Code (toEnum suc) (toEnum c) n) msg
 
--- |A reply constitutes \"success\" if the status code is
--- any of 'PreliminarySuccess', 'Success', or
--- 'IntermediateSuccess'.
+-- | A reply constitutes \"success\" if the status code is any of
+-- 'PreliminarySuccess', 'Success', or 'IntermediateSuccess'.
 
-isSuccess :: SmtpReply -> Bool
+isSuccess :: EsmtpReply -> Bool
 isSuccess (Reply (Code PreliminarySuccess _ _) _)  = True
 isSuccess (Reply (Code Success _ _) _)             = True
 isSuccess (Reply (Code IntermediateSuccess _ _) _) = True
 isSuccess _                                        = False
 
--- |A reply constitutes \"failure\" if the status code is
--- either 'PermanentFailure' or 'TransientFailure'.
+-- | A reply constitutes \"failure\" if the status code is either
+-- 'PermanentFailure' or 'TransientFailure'.
 
-isFailure :: SmtpReply -> Bool
+isFailure :: EsmtpReply -> Bool
 isFailure (Reply (Code PermanentFailure _ _) _) = True
 isFailure (Reply (Code TransientFailure _ _) _) = True
 isFailure _                                     = False
 
--- |The replies @221@ and @421@ signify 'Shutdown'.
+-- | The replies @221@ and @421@ signify 'Shutdown'.
 
-isShutdown :: SmtpReply -> Bool
+isShutdown :: EsmtpReply -> Bool
 isShutdown (Reply (Code Success Connection 1) _)          = True
 isShutdown (Reply (Code TransientFailure Connection 1) _) = True
 isShutdown _                                              = False
@@ -318,31 +211,25 @@ isShutdown _                                              = False
 -- * Command Parsers
 ----------------------------------------------------------------------
 
--- |The SMTP parsers defined here correspond to the commands
--- specified in RFC2821, so I won't document them
--- individually.
+-- | This parser recognizes any of the ESMTP commands defined below. Note that
+-- /all/ command parsers expect their input to be terminated with 'crlf'.
 
--- type SmtpParser s u m = Stream s m Char => ParsecT s u m SmtpCmd
+smtpCmd :: Stream s m Char => ParsecT s u m EsmtpCmd
 
--- |This parser recognizes any of the SMTP commands defined
--- below. Note that /all/ command parsers expect their input
--- to be terminated with 'crlf'.
-
-smtpCmd :: Stream s m Char => ParsecT s u m SmtpCmd
 smtpCmd = choice
           [ smtpData, rset, noop, quit, turn
           , helo, mail, rcpt, send, soml, saml
           , vrfy, expn, help, ehlo
           ]
 
--- |The parser name \"data\" was taken.
-smtpData :: Stream s m Char => ParsecT s u m SmtpCmd
-rset, quit, turn, helo, ehlo, mail :: Stream s m Char => ParsecT s u m SmtpCmd
-rcpt, send, soml, saml, vrfy, expn :: Stream s m Char => ParsecT s u m SmtpCmd
-help                               :: Stream s m Char => ParsecT s u m SmtpCmd
+-- | The parser name \"data\" was taken.
+smtpData :: Stream s m Char => ParsecT s u m EsmtpCmd
+rset, quit, turn, helo, ehlo, mail :: Stream s m Char => ParsecT s u m EsmtpCmd
+rcpt, send, soml, saml, vrfy, expn :: Stream s m Char => ParsecT s u m EsmtpCmd
+help                               :: Stream s m Char => ParsecT s u m EsmtpCmd
 
--- |May have an optional 'word' argument, but it is ignored.
-noop :: Stream s m Char => ParsecT s u m SmtpCmd
+-- | May have an optional 'word' argument, but it is ignored.
+noop :: Stream s m Char => ParsecT s u m EsmtpCmd
 
 smtpData = mkCmd0 "DATA" Data
 rset = mkCmd0 "RSET" Rset
@@ -413,7 +300,7 @@ a_d_l = sepBy1 at_domain (char ',') <?> "route-list"
 at_domain :: Stream s m Char => ParsecT s u m String
 at_domain = (char '@' >> domain) <?> "at-domain"
 
--- |/TODO/: Add IPv6 address and general literals
+-- | /TODO/: Add IPv6 address and general literals
 address_literal :: Stream s m Char => ParsecT s u m String
 address_literal = ipv4_literal  <?> "IPv4 address literal"
 
@@ -459,8 +346,8 @@ snum = do
 number :: Stream s m Char => ParsecT s u m String
 number = many1 digit
 
--- |This is a useful addition: The parser accepts an 'atom'
--- or a 'quoted_string'.
+-- | This is a useful addition: The parser accepts an 'atom' or a
+-- 'quoted_string'.
 
 word :: Stream s m Char => ParsecT s u m String
 word = (atom <|> fmap show quoted_string)
@@ -471,12 +358,10 @@ word = (atom <|> fmap show quoted_string)
 -- * Helper Functions
 ----------------------------------------------------------------------
 
--- |Make the string 'crlf' terminated no matter what.
--- \'@\\n@\' is expanded, otherwise 'crlf' is appended. Note
--- that if the string was terminated incorrectly before, it
--- still is. This function is useful when reading input with
--- 'System.IO.hGetLine' which removes the end-of-line
--- delimiter.
+-- | Make the string 'crlf' terminated no matter what. \'@\\n@\' is expanded,
+-- otherwise 'crlf' is appended. Note that if the string was terminated
+-- incorrectly before, it still is. This function is useful when reading input
+-- with 'System.IO.hGetLine' which removes the end-of-line delimiter.
 
 fixCRLF :: String -> String
 fixCRLF ('\r' :'\n':[]) = fixCRLF []
@@ -484,8 +369,7 @@ fixCRLF (  x  :'\n':[]) = x : fixCRLF []
 fixCRLF (  x  :  xs   ) = x : fixCRLF xs
 fixCRLF      [ ]        = "\r\n"
 
--- |Construct a parser for a command without arguments.
--- Expects 'crlf'!
+-- | Construct a parser for a command without arguments. Expects 'crlf'!
 
 mkCmd0 :: Stream s m Char => String -> a -> ParsecT s u m a
 mkCmd0 str cons = (do
@@ -493,13 +377,12 @@ mkCmd0 str cons = (do
   _ <- skipMany wsp >> crlf
   return cons)                          <?> str
 
--- |Construct a parser for a command with an argument, which
--- the given parser will handle. The result of the argument
--- parser will be applied to the type constructor before it
--- is returned. Expects 'crlf'!
+-- | Construct a parser for a command with an argument, which the given parser
+-- will handle. The result of the argument parser will be applied to the type
+-- constructor before it is returned. Expects 'crlf'!
 
-mkCmd1 :: Stream s m Char => String -> (a -> SmtpCmd) -> ParsecT s u m a
-       -> ParsecT s u m SmtpCmd
+mkCmd1 :: Stream s m Char => String -> (a -> EsmtpCmd) -> ParsecT s u m a
+       -> ParsecT s u m EsmtpCmd
 mkCmd1 str cons p = do
   try (caseString str)
   _ <- wsp
@@ -512,10 +395,8 @@ mkCmd1 str cons p = do
     Left e  -> return (WrongArg str e)
     Right a -> return (cons a)
 
--- @tokenList p '.'@ will parse a token of the form
--- \"@p.p@\", or \"@p.p.p@\", and so on. Used in 'domain'
--- and 'dot_string', for example.
+-- | @tokenList p '.'@ will parse a token of the form \"@p.p@\", or
+-- \"@p.p.p@\", and so on. Used in 'domain' and 'dot_string', for example.
 
-tokenList :: Stream s m Char => ParsecT s u m String -> Char
-          -> ParsecT s u m String
+tokenList :: Stream s m Char => ParsecT s u m String -> Char -> ParsecT s u m String
 tokenList p c = fmap (intercalate [c]) (sepBy1 p (char c))
