@@ -12,7 +12,7 @@ author:        Peter Simons,
 maintainer:    Peter Simons <simons@cryp.to>
 stability:     stable
 tested-with:   GHC == 7.0.4, GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3,
-               GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.2
+               GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5
 category:      Parsing
 homepage:      https://github.com/peti/hsemail#readme
 bug-reports:   https://github.com/peti/hsemail/issues
