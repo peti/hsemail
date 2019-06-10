@@ -19,12 +19,13 @@ import Text.Parsec.Rfc2234 hiding ( quoted_pair, quoted_string )
 
 import Control.Monad ( replicateM, guard )
 import Data.Char ( ord )
+import Data.Functor
 import Data.List ( intercalate )
 import Data.Maybe ( catMaybes )
 import Data.Monoid ( Monoid, mempty )
 import Data.Time.Calendar
 import Data.Time.LocalTime
-import Text.Parsec hiding (crlf)
+import Text.Parsec hiding ( crlf )
 
 -- Customize hlint ...
 {-# ANN module "HLint: ignore Use camelCase" #-}
@@ -301,18 +302,18 @@ month =     try (between (optional fws) (optional fws) month_name <?> "month nam
 -- and return the appropriate 'Int' value in the range of (1,12).
 
 month_name :: Stream s m Char => ParsecT s u m Int
-month_name =     do { try (caseString "Jan") *> pure 1 }
-             <|> do { caseString "Feb" *> pure 2 }
-             <|> do { try (caseString "Mar") *> pure 3 }
-             <|> do { try (caseString "Apr") *> pure 4 }
-             <|> do { caseString "May" *> pure  5 }
-             <|> do { try (caseString "Jun") *> pure  6 }
-             <|> do { caseString "Jul" *> pure 7 }
-             <|> do { caseString "Aug" *> pure 8 }
-             <|> do { caseString "Sep" *> pure 9 }
-             <|> do { caseString "Oct" *> pure 10 }
-             <|> do { caseString "Nov" *> pure 11 }
-             <|> do { caseString "Dec" *> pure 12 }
+month_name =     (try (caseString "Jan") $> 1)
+             <|> (caseString "Feb" $> 2)
+             <|> (try (caseString "Mar") $> 3)
+             <|> (try (caseString "Apr") $> 4)
+             <|> (caseString "May" $>  5)
+             <|> (try (caseString "Jun") $>  6)
+             <|> (caseString "Jul" $> 7)
+             <|> (caseString "Aug" $> 8)
+             <|> (caseString "Sep" $> 9)
+             <|> (caseString "Oct" $> 10)
+             <|> (caseString "Nov" $> 11)
+             <|> (caseString "Dec" $> 12)
              <?> "month name"
 
 -- Internal helper function: match a 1 or 2-digit number (day of month).
@@ -394,21 +395,18 @@ minute = do r <- fmap read (replicateM 2 digit)
 -- 34
 
 second :: Stream s m Char => ParsecT s u m Int
-second = do r <- fmap read (replicateM 2 digit)
-            guard (r >= 0 && r <= 60)
-            return r
-         <?> "second"
+second = minute <?> "second"
 
 -- |This parser will match a timezone specification of the form
 -- \"@+hhmm@\" or \"@-hhmm@\" and return the zone's offset to UTC in
 -- seconds as an integer. 'obs_zone' is matched as well.
 
 zone :: Stream s m Char => ParsecT s u m TimeZone
-zone = do sign <- choice [char '+' *> pure 1, char '-' *> pure (-1) ]
+zone = do sign <- choice [char '+' $> 1, char '-' $> (-1) ]
           h <- hour
           m <- minute
           return (minutesToTimeZone (sign*((h*60)+m)))
-      <|> obs_zone
+       <|> obs_zone
 
 -- * Address Specification (section 3.4)
 
