@@ -55,7 +55,7 @@ manyNtoM n m p
     | n < 0      = return []
     | n > m      = return []
     | n == m     = replicateM n p
-    | n == 0     = foldr (<|>) (return []) (map (\x -> try $ replicateM x p) (reverse [1..m]))
+    | n == 0     = foldr ((<|>) . (\x -> try (replicateM x p))) (return []) (reverse [1..m])
     | otherwise  = liftM2 (++) (replicateM n p) (manyNtoM 0 (m-n) p)
 
 -- |Helper function to generate 'Parser'-based instances for

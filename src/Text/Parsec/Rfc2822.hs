@@ -433,10 +433,8 @@ mailbox         = try name_addr <|> fmap (NameAddr Nothing) addr_spec
 -- and return the address.
 
 name_addr       :: Stream s m Char => ParsecT s u m NameAddr
-name_addr       = do name <- maybeOption display_name
-                     addr <- angle_addr
-                     return (NameAddr name addr)
-                  <?> "name address"
+name_addr       = (NameAddr <$> maybeOption display_name <*> angle_addr) <?> "name address"
+
 
 -- |Parse an 'angle_addr' or an 'obs_angle_addr' and return the address.
 
@@ -623,32 +621,31 @@ data Field      = OptionalField       String String
 -- that any message that can possibly be accepted /should/ be.
 
 fields          :: Stream s m Char => ParsecT s u m [Field]
-fields          = many (    try (do { r <- from; return (From r) })
-                        <|> try (do { r <- sender; return (Sender r) })
-                        <|> try (do { r <- return_path; return (ReturnPath r) })
-                        <|> try (do { r <- reply_to; return (ReplyTo r) })
-                        <|> try (do { r <- to; return (To r) })
-                        <|> try (do { r <- cc; return (Cc r) })
-                        <|> try (do { r <- bcc; return (Bcc r) })
-                        <|> try (do { r <- message_id; return (MessageID r) })
-                        <|> try (do { r <- in_reply_to; return (InReplyTo r) })
-                        <|> try (do { r <- references; return (References r) })
-                        <|> try (do { r <- subject; return (Subject r) })
-                        <|> try (do { r <- comments; return (Comments r) })
-                        <|> try (do { r <- keywords; return (Keywords r) })
-                        <|> try (do { r <- orig_date; return (Date r) })
-                        <|> try (do { r <- resent_date; return (ResentDate r) })
-                        <|> try (do { r <- resent_from; return (ResentFrom r) })
-                        <|> try (do { r <- resent_sender; return (ResentSender r) })
-                        <|> try (do { r <- resent_to; return (ResentTo r) })
-                        <|> try (do { r <- resent_cc; return (ResentCc r) })
-                        <|> try (do { r <- resent_bcc; return (ResentBcc r) })
-                        <|> try (do { r <- resent_msg_id; return (ResentMessageID r) })
-                        <|> try (do { r <- received; return (Received r) })
-                         -- catch all
-                        <|> (do { (name,cont) <- optional_field; return (OptionalField name cont) })
-                       )
-
+fields          = many $ choice
+                         [ try (From <$> from)
+                         , try (Sender <$> sender)
+                         , try (ReturnPath <$> return_path)
+                         , try (ReplyTo <$> reply_to)
+                         , try (To <$> to)
+                         , try (Cc <$> cc)
+                         , try (Bcc <$> bcc)
+                         , try (MessageID <$> message_id)
+                         , try (InReplyTo <$> in_reply_to)
+                         , try (References <$> references)
+                         , try (Subject <$> subject)
+                         , try (Comments <$> comments)
+                         , try (Keywords <$> keywords)
+                         , try (Date <$> orig_date)
+                         , try (ResentDate <$> resent_date)
+                         , try (ResentFrom <$> resent_from)
+                         , try (ResentSender <$> resent_sender)
+                         , try (ResentTo <$> resent_to)
+                         , try (ResentCc <$> resent_cc)
+                         , try (ResentBcc <$> resent_bcc)
+                         , try (ResentMessageID <$> resent_msg_id)
+                         , try (Received <$> received)
+                         , uncurry OptionalField <$> optional_field  -- catch all
+                         ]
 
 -- ** The origination date field (section 3.6.1)
 
@@ -902,6 +899,8 @@ item_value      = choice [ try (do { r <- many1 angle_addr; return (concat r) })
 -- |Parse an arbitrary header field and return a tuple containing the
 -- 'field_name' and 'unstructured' text of the header. The name will
 -- /not/ contain the terminating colon.
+
+{-# ANN optional_field "HLint: ignore Reduce duplication" #-}
 
 optional_field  :: Stream s m Char => ParsecT s u m (String,String)
 optional_field  = do n <- field_name
@@ -1182,34 +1181,32 @@ obs_addr_list   = do r1 <- many1 (try (do r <- maybeOption address
 -- * Obsolete header fields (section 4.5)
 
 obs_fields      :: Stream s m Char => ParsecT s u m [Field]
-obs_fields      = many (    try (do { r <- obs_from; return (From r) })
-                        <|> try (do { r <- obs_sender; return (Sender r) })
-                        <|> try (do { r <- obs_return; return (ReturnPath r) })
-                        <|> try (do { r <- obs_reply_to; return (ReplyTo r) })
-                        <|> try (do { r <- obs_to; return (To r) })
-                        <|> try (do { r <- obs_cc; return (Cc r) })
-                        <|> try (do { r <- obs_bcc; return (Bcc r) })
-                        <|> try (do { r <- obs_message_id; return (MessageID r) })
-                        <|> try (do { r <- obs_in_reply_to; return (InReplyTo r) })
-                        <|> try (do { r <- obs_references; return (References r) })
-                        <|> try (do { r <- obs_subject; return (Subject r) })
-                        <|> try (do { r <- obs_comments; return (Comments r) })
-                        <|> try (do { r <- obs_keywords; return (Keywords [r]) })
-                        <|> try (do { r <- obs_orig_date; return (Date r) })
-                        <|> try (do { r <- obs_resent_date; return (ResentDate r) })
-                        <|> try (do { r <- obs_resent_from; return (ResentFrom r) })
-                        <|> try (do { r <- obs_resent_send; return (ResentSender r) })
-                        <|> try (do { r <- obs_resent_to; return (ResentTo r) })
-                        <|> try (do { r <- obs_resent_cc; return (ResentCc r) })
-                        <|> try (do { r <- obs_resent_bcc; return (ResentBcc r) })
-                        <|> try (do { r <- obs_resent_mid; return (ResentMessageID r) })
-                        <|> try (do { r <- obs_resent_reply; return (ResentReplyTo r) })
-                        <|> try (do { r <- obs_received; return (ObsReceived r) })
-                         -- catch all
-                        <|> (do { (name,cont) <- obs_optional; return (OptionalField name cont) })
-                       )
-
-
+obs_fields      = many $ choice
+                         [ try (From <$> obs_from)
+                         , try (Sender <$> obs_sender)
+                         , try (ReturnPath <$> obs_return)
+                         , try (ReplyTo <$> obs_reply_to)
+                         , try (To <$> obs_to)
+                         , try (Cc <$> obs_cc)
+                         , try (Bcc <$> obs_bcc)
+                         , try (MessageID <$> obs_message_id)
+                         , try (InReplyTo <$> obs_in_reply_to)
+                         , try (References <$> obs_references)
+                         , try (Subject <$> obs_subject)
+                         , try (Comments <$> obs_comments)
+                         , try (Keywords . return <$> obs_keywords)
+                         , try (Date <$> obs_orig_date)
+                         , try (ResentDate <$> obs_resent_date)
+                         , try (ResentFrom <$> obs_resent_from)
+                         , try (ResentSender <$> obs_resent_send)
+                         , try (ResentTo <$> obs_resent_to)
+                         , try (ResentCc <$> obs_resent_cc)
+                         , try (ResentBcc <$> obs_resent_bcc)
+                         , try (ResentMessageID <$> obs_resent_mid)
+                         , try (ResentReplyTo <$> obs_resent_reply)
+                         , try (ObsReceived <$> obs_received)
+                         , uncurry OptionalField <$> obs_optional    -- catch all
+                         ]
 -- ** Obsolete origination date field (section 4.5.1)
 
 -- |Parse a 'date' header line but allow for the obsolete

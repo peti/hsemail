@@ -277,13 +277,7 @@ path = between (char '<') (char '>') (p <?> "path")
     return (Mailbox r1 l d)
 
 mailbox :: Stream s m Char => ParsecT s u m Mailbox
-mailbox = p <?> "mailbox"
-  where
-  p = do
-    r1 <- local_part
-    _ <- char '@'
-    r2 <- domain
-    return (Mailbox [] r1 r2)
+mailbox = (Mailbox [] <$> local_part <* char '@' <*> domain) <?> "mailbox"
 
 local_part :: Stream s m Char => ParsecT s u m String
 local_part = (dot_string <|> quoted_string) <?> "local-part"
@@ -363,6 +357,7 @@ word = (atom <|> fmap show quoted_string)
 -- incorrectly before, it still is. This function is useful when reading input
 -- with 'System.IO.hGetLine' which removes the end-of-line delimiter.
 
+{-# ANN fixCRLF "HLint: ignore Use list literal pattern" #-}
 fixCRLF :: String -> String
 fixCRLF ('\r' :'\n':[]) = fixCRLF []
 fixCRLF (  x  :'\n':[]) = x : fixCRLF []
