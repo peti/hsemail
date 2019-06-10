@@ -1,10 +1,12 @@
 module Main ( main ) where
 
+import Text.Parsec.Rfc2822
+
+import Data.Time.Calendar
+import Data.Time.LocalTime
 import Test.Hspec
-import System.Time ( CalendarTime(..), Month(..), Day(..) )
 import Text.Parsec ( parse, eof )
 import Text.Parsec.String ( Parser )
-import Text.Parsec.Rfc2822
 
 parseTest :: Parser a -> String -> IO a
 parseTest p input = case parse (do { r <- p; eof; return r }) (show input) input of
@@ -28,17 +30,17 @@ main = hspec $ do
 
   describe "Rfc2822.date_time" $
     it "parses hand-picked times correctly" $
-      parseTest date_time "Fri, 21 Dec 2012 00:07:43 +0300" `shouldReturn`
-        CalendarTime 2012 December 21 0 7 43 0 Friday 0 "" 10800 False
+      fmap zonedTimeToUTC (parseTest date_time "Fri, 21 Dec 2012 00:07:43 +0300") `shouldReturn`
+        zonedTimeToUTC (ZonedTime (LocalTime (fromGregorian 2012 12 21) (TimeOfDay 0 7 43)) (hoursToTimeZone 3))
 
   describe "Rfc2822.day" $ do
     it "parses a hand-picked day-of-months correctly" $ do
-      parseTest day "00" `shouldReturn` 0
       parseTest day "09" `shouldReturn` 9
       parseTest day "15" `shouldReturn` 15
 
-    it "does not perform range checking" $
-      parseTest day "99" `shouldReturn` 99
+    it "does perform range checking" $ do
+      parseFailure day "00"
+      parseFailure day "99"
 
     it "fails properly on incomplete input" $ do
       parseFailure day "Mon"

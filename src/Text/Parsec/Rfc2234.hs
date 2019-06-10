@@ -37,8 +37,8 @@ caseChar c       = satisfy (\x -> toUpper x == toUpper c)
 
 -- |Case-insensitive variant of Parsec's 'string' function.
 
-caseString      :: Stream s m Char => String -> ParsecT s u m ()
-caseString cs    = mapM_ caseChar cs <?> cs
+caseString      :: Stream s m Char => String -> ParsecT s u m String
+caseString cs    = mapM caseChar cs <?> cs
 
 -- |Match a parser at least @n@ times.
 

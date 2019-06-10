@@ -28,12 +28,12 @@ library
                     Text.Parsec.Rfc2822
   other-modules:    Paths_hsemail
   hs-source-dirs:   src
-  build-depends:    base > 4.8 && < 5, mtl, old-time, parsec >= 3.1
+  build-depends:    base > 4.8 && < 5, mtl, time, parsec >= 3.1
   default-language: Haskell2010
 
 test-suite test-hsemail
   type:             exitcode-stdio-1.0
   main-is:          spec.hs
   hs-source-dirs:   test
-  build-depends:    base, hsemail, hspec, old-time, parsec
+  build-depends:    base, hsemail, hspec, time, parsec
   default-language: Haskell2010
