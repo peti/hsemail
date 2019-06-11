@@ -2,6 +2,7 @@
 
 ## v2.2.0
 
+* Derive `Eq` for `EsmtpCmd`.
 * Rename `smtpCmd` and `smtpData` to `esmtpCmd` and `esmtpData` respectively
   for consistency with the data type names.
 

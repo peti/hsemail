@@ -55,6 +55,7 @@ data EsmtpCmd
       -- returned. The 'String' contains the name of the
       -- command (in all upper-case) and the 'ParseError'
       -- is, obviously, the error description.
+  deriving (Eq)
 
 instance Show EsmtpCmd where
   show (Helo str)       = "HELO " ++ str
