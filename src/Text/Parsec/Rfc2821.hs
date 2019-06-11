@@ -375,6 +375,10 @@ mkCmd0 str cons = (do
 -- | Construct a parser for a command with an argument, which the given parser
 -- will handle. The result of the argument parser will be applied to the type
 -- constructor before it is returned. Expects 'crlf'!
+--
+-- TODO: Commands that need an argument should diagnose a 'WrongArg' without
+--       requiring a space, i.e. @EHLO@ should be recognized as missing a
+--       required argument.
 
 mkCmd1 :: Stream s m Char => String -> (a -> EsmtpCmd) -> ParsecT s u m a
        -> ParsecT s u m EsmtpCmd

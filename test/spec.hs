@@ -1,5 +1,6 @@
 module Main ( main ) where
 
+import Text.Parsec.Rfc2821 ( esmtpCmd, EsmtpCmd(..) )
 import Text.Parsec.Rfc2822
 
 import Data.Time.Calendar
@@ -297,3 +298,10 @@ main = hspec $ do
   describe "Rfc2822.body" $
     it "parses 8-bit characters correctly" $
       parseIdemTest body "abc äöüß def"
+
+  describe "Rfc2822.esmtpCmd" $ do
+    it "recognized missing arguments properly" $ do
+      let isWrongArg (WrongArg _ _) = True
+          isWrongArg _              = False
+      parseTest esmtpCmd "EHLO " >>= (`shouldSatisfy` isWrongArg)
+      parseTest esmtpCmd "EHLO" >>= (`shouldSatisfy` isWrongArg)
