@@ -1,5 +1,10 @@
 # Change Log for hsemail
 
+## v2.2.0
+
+* Rename `smtpCmd` and `smtpData` to `esmtpCmd` and `esmtpData` respectively
+  for consistency with the data type names.
+
 ## v2.1.0
 
 * Re-write code to use the modern `time` library rather than `old-time`.

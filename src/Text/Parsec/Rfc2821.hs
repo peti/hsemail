@@ -214,16 +214,16 @@ isShutdown _                                              = False
 -- | This parser recognizes any of the ESMTP commands defined below. Note that
 -- /all/ command parsers expect their input to be terminated with 'crlf'.
 
-smtpCmd :: Stream s m Char => ParsecT s u m EsmtpCmd
+esmtpCmd :: Stream s m Char => ParsecT s u m EsmtpCmd
 
-smtpCmd = choice
-          [ smtpData, rset, noop, quit, turn
-          , helo, mail, rcpt, send, soml, saml
-          , vrfy, expn, help, ehlo
-          ]
+esmtpCmd = choice
+           [ esmtpData, rset, noop, quit, turn
+           , helo, mail, rcpt, send, soml, saml
+           , vrfy, expn, help, ehlo
+           ]
 
 -- | The parser name \"data\" was taken.
-smtpData :: Stream s m Char => ParsecT s u m EsmtpCmd
+esmtpData :: Stream s m Char => ParsecT s u m EsmtpCmd
 rset, quit, turn, helo, ehlo, mail :: Stream s m Char => ParsecT s u m EsmtpCmd
 rcpt, send, soml, saml, vrfy, expn :: Stream s m Char => ParsecT s u m EsmtpCmd
 help                               :: Stream s m Char => ParsecT s u m EsmtpCmd
@@ -231,7 +231,7 @@ help                               :: Stream s m Char => ParsecT s u m EsmtpCmd
 -- | May have an optional 'word' argument, but it is ignored.
 noop :: Stream s m Char => ParsecT s u m EsmtpCmd
 
-smtpData = mkCmd0 "DATA" Data
+esmtpData = mkCmd0 "DATA" Data
 rset = mkCmd0 "RSET" Rset
 quit = mkCmd0 "QUIT" Quit
 turn = mkCmd0 "TURN" Turn

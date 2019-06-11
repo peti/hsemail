@@ -1,5 +1,5 @@
 name:               hsemail
-version:            2.1.0
+version:            2.2.0
 synopsis:           Parsec parsers for the RFC2822 Internet Message format
 description:        Parsec parsers for the Internet Message format defined in RFC 2821 and
                     2822.
