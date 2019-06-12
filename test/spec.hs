@@ -300,8 +300,12 @@ main = hspec $ do
       parseIdemTest body "abc äöüß def"
 
   describe "Rfc2822.esmtpCmd" $ do
-    it "recognized missing arguments properly" $ do
-      let isWrongArg (WrongArg _ _) = True
-          isWrongArg _              = False
-      parseTest esmtpCmd "EHLO " >>= (`shouldSatisfy` isWrongArg)
-      parseTest esmtpCmd "EHLO" >>= (`shouldSatisfy` isWrongArg)
+    it "understands hand-picked ESMTP command examples" $ do
+      parseTest esmtpCmd "helo test\r\n" `shouldReturn` Helo "test"
+
+    it "recognizes missing arguments properly" $ do
+      let isWrongArg (WrongArg _) = True
+          isWrongArg _            = False
+      parseTest esmtpCmd "EHLO \r\n" >>= (`shouldSatisfy` isWrongArg)
+      parseTest esmtpCmd "EHLO\r\n" >>= (`shouldSatisfy` isWrongArg)
+      parseTest esmtpCmd "EHLO !illegal!\r\n" >>= (`shouldSatisfy` isWrongArg)

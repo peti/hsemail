@@ -17,10 +17,11 @@ module Text.Parsec.Rfc2821 where
 
 import Text.Parsec.Rfc2234
 
+import Control.Monad ( void )
 import Control.Exception ( assert )
-import Control.Monad.State
 import Data.Char ( toLower )
 import Data.List ( intercalate )
+import Data.Functor ( ($>) )
 import Text.Parsec hiding (crlf)
 
 -- Customize hlint ...
@@ -49,7 +50,7 @@ data EsmtpCmd
   | Noop                        -- ^ Optional argument ignored.
   | Quit
   | Turn
-  | WrongArg String ParseError
+  | WrongArg String
       -- ^ When a valid command has been recognized, but the
       -- argument parser fails, then this type will be
       -- returned. The 'String' contains the name of the
@@ -75,7 +76,7 @@ instance Show EsmtpCmd where
   show (Help t)
     | null t            = "HELP"
     | otherwise         = "HELP " ++ t
-  show (WrongArg str _) = "Syntax error in argument of " ++ str ++ "."
+  show (WrongArg str) = "Syntax error in argument of " ++ str ++ "."
 
 -- | The most general e-mail address has the form:
 -- @\<[\@route,...:]user\@domain\>@. This type, too, supports 'show' and
@@ -216,7 +217,6 @@ isShutdown _                                              = False
 -- /all/ command parsers expect their input to be terminated with 'crlf'.
 
 esmtpCmd :: Stream s m Char => ParsecT s u m EsmtpCmd
-
 esmtpCmd = choice
            [ esmtpData, rset, noop, quit, turn
            , helo, mail, rcpt, send, soml, saml
@@ -376,24 +376,14 @@ mkCmd0 str cons = (do
 -- | Construct a parser for a command with an argument, which the given parser
 -- will handle. The result of the argument parser will be applied to the type
 -- constructor before it is returned. Expects 'crlf'!
---
--- TODO: Commands that need an argument should diagnose a 'WrongArg' without
---       requiring a space, i.e. @EHLO@ should be recognized as missing a
---       required argument.
 
 mkCmd1 :: Stream s m Char => String -> (a -> EsmtpCmd) -> ParsecT s u m a
        -> ParsecT s u m EsmtpCmd
-mkCmd1 str cons p = do
-  try (caseString str)
-  _ <- wsp
-  input <- getInput
-  st <- getState
-  let eol = skipMany wsp >> crlf
-      p'  = between (many wsp) eol p <?> str
-  r <- lift $ runParserT p' st "" input
-  case r of
-    Left e  -> return (WrongArg str e)
-    Right a -> return (cons a)
+mkCmd1 str cons p = choice
+  [ try (caseString str *> many1 wsp *> fmap cons p <* crlf)
+  , try (caseString str *> many1 wsp *> manyTill anyChar crlf $> WrongArg str)
+  , try (caseString str *> crlf $> WrongArg str)
+  ]                                     <?> str
 
 -- | @tokenList p '.'@ will parse a token of the form \"@p.p@\", or
 -- \"@p.p.p@\", and so on. Used in 'domain' and 'dot_string', for example.

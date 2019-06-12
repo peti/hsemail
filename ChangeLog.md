@@ -5,6 +5,11 @@
 * Derive `Eq` for `EsmtpCmd`.
 * Rename `smtpCmd` and `smtpData` to `esmtpCmd` and `esmtpData` respectively
   for consistency with the data type names.
+* Ensure that ESMTP commands that take an argument are recognized even if the
+  argument is missing completely. This means that `EHLO\r\n` is now reported as
+  a `WrongArg` result properly.
+* `mkCmd1`: re-wrote the fragile start-parser-inside-of-a-parser logic
+* Drop the obsolete dependency on `mtl`.
 
 ## v2.1.0
 
