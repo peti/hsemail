@@ -57,25 +57,24 @@ data EsmtpCmd
   deriving (Eq)
 
 instance Show EsmtpCmd where
-  show (Helo str)        = "HELO " ++ str
-  show (Ehlo str)        = "EHLO " ++ str
-  show (MailFrom mbox)   = "MAIL FROM:" ++ show mbox
-  show (RcptTo mbox)     = "RCPT TO:" ++ show mbox
-  show Data              = "DATA"
-  show Rset              = "RSET"
-  show (Send mbox)       = "SEND " ++ show mbox
-  show (Soml mbox)       = "SOML " ++ show mbox
-  show (Saml mbox)       = "SAML " ++ show mbox
-  show (Vrfy str)        = "VRFY " ++ str
-  show (Expn str)        = "EXPN " ++ str
-  show Noop              = "NOOP"
-  show Quit              = "QUIT"
-  show Turn              = "TURN"
-  show (Help t)
-    | null t             = "HELP"
-    | otherwise          = "HELP " ++ t
-  show (SyntaxError str) = "Syntax error in line " ++ str ++ "."
-  show (WrongArg str)    = "Syntax error in argument of " ++ str ++ "."
+  show (Helo str )          = "HELO " ++ str
+  show (Ehlo str )          = "EHLO " ++ str
+  show (MailFrom mbox)      = "MAIL FROM:" ++ show mbox
+  show (RcptTo mbox)        = "RCPT TO:" ++ show mbox
+  show Data                 = "DATA"
+  show Rset                 = "RSET"
+  show (Send mbox)          = "SEND " ++ show mbox
+  show (Soml mbox)          = "SOML " ++ show mbox
+  show (Saml mbox)          = "SAML " ++ show mbox
+  show (Vrfy str)           = "VRFY " ++ str
+  show (Expn str)           = "EXPN " ++ str
+  show Noop                 = "NOOP"
+  show Quit                 = "QUIT"
+  show Turn                 = "TURN"
+  show (Help t) | null t    = "HELP"
+                | otherwise = "HELP " ++ t
+  show (SyntaxError str)    = "Syntax error in line " ++ str ++ "."
+  show (WrongArg str)       = "Syntax error in argument of " ++ str ++ "."
 
 -- | The most general e-mail address has the form:
 -- @\<[\@route,...:]user\@domain\>@. This type, too, supports 'show' and
@@ -86,21 +85,19 @@ instance Show EsmtpCmd where
 data Mailbox = Mailbox [String] String String
 
 instance Eq Mailbox where
-  lhs == rhs  =  norm lhs == norm rhs
-    where
-    norm (Mailbox rt lp hp) = (rt, lp, map toLower hp)
+  lhs == rhs = norm lhs == norm rhs where norm (Mailbox rt lp hp) = (rt, lp, map toLower hp)
 
 instance Show Mailbox where
   show (Mailbox [] [] []) = "<>"
   show (Mailbox [] "postmaster" []) = "<postmaster>"
   show (Mailbox p u d) = "<" ++ route ++ (if null route then [] else ":") ++ mbox ++ ">"
-    where
-      route = intercalate "," . map ((:) '@') $ p
-      mbox  = u ++ "@" ++ d
+   where
+    route = intercalate "," . map ((:) '@') $ p
+    mbox  = u ++ "@" ++ d
 
 instance Read Mailbox where
   readsPrec _ = parsec2read (path <|> mailbox)
-  readList    = error "reading [Mailbox] is not supported"
+  readList = error "reading [Mailbox] is not supported"
 
 -- | @nullPath@ @=@ @'Mailbox' [] \"\" \"\" = \"\<\>\"@
 
@@ -155,43 +152,38 @@ data Category
 
 instance Show EsmtpReply where
   show (Reply c@(Code suc cat _) []) =
-    let msg = show suc ++ " in category " ++ show cat
-    in
-    show $ Reply c [msg]
+    let msg = show suc ++ " in category " ++ show cat in show $ Reply c [msg]
 
   show (Reply code msg) =
     let prefixCon = show code ++ "-"
         prefixEnd = show code ++ " "
-        fmt p l   = p ++ l ++ "\r\n"
-        (x:xs) = reverse msg
-        msgCon = map (fmt prefixCon) xs
-        msgEnd = fmt prefixEnd x
-        msg'   = reverse (msgEnd:msgCon)
-    in
-    concat msg'
+        fmt p l = p ++ l ++ "\r\n"
+        (x : xs) = reverse msg
+        msgCon   = map (fmt prefixCon) xs
+        msgEnd   = fmt prefixEnd x
+        msg'     = reverse (msgEnd : msgCon)
+    in  concat msg'
 
 instance Show EsmtpCode where
   show (Code suc cat n) =
-    assert (n >= 0 && n <= 9) $
-      (show . fromEnum) suc ++ (show . fromEnum) cat ++ show n
+    assert (n >= 0 && n <= 9) $ (show . fromEnum) suc ++ (show . fromEnum) cat ++ show n
 
 -- | Construct a 'Reply'. Fails 'assert' if invalid numbers are given.
 
 reply :: Int -> Int -> Int -> [String] -> EsmtpReply
 reply suc c n msg =
-  assert (suc >= 0 && suc <= 5) $
-    assert (c >= 0 && c <= 5)   $
-      assert (n >= 0 && n <= 9) $
-        Reply (Code (toEnum suc) (toEnum c) n) msg
+  assert (suc >= 0 && suc <= 5) $ assert (c >= 0 && c <= 5) $ assert (n >= 0 && n <= 9) $ Reply
+    (Code (toEnum suc) (toEnum c) n)
+    msg
 
 -- | A reply constitutes \"success\" if the status code is any of
 -- 'PreliminarySuccess', 'Success', or 'IntermediateSuccess'.
 
 isSuccess :: EsmtpReply -> Bool
-isSuccess (Reply (Code PreliminarySuccess _ _) _)  = True
-isSuccess (Reply (Code Success _ _) _)             = True
+isSuccess (Reply (Code PreliminarySuccess _ _) _) = True
+isSuccess (Reply (Code Success _ _) _) = True
 isSuccess (Reply (Code IntermediateSuccess _ _) _) = True
-isSuccess _                                        = False
+isSuccess _ = False
 
 -- | A reply constitutes \"failure\" if the status code is either
 -- 'PermanentFailure' or 'TransientFailure'.
@@ -199,14 +191,14 @@ isSuccess _                                        = False
 isFailure :: EsmtpReply -> Bool
 isFailure (Reply (Code PermanentFailure _ _) _) = True
 isFailure (Reply (Code TransientFailure _ _) _) = True
-isFailure _                                     = False
+isFailure _ = False
 
 -- | The replies @221@ and @421@ signify 'Shutdown'.
 
 isShutdown :: EsmtpReply -> Bool
-isShutdown (Reply (Code Success Connection 1) _)          = True
+isShutdown (Reply (Code Success Connection 1) _) = True
 isShutdown (Reply (Code TransientFailure Connection 1) _) = True
-isShutdown _                                              = False
+isShutdown _ = False
 
 ----------------------------------------------------------------------
 -- * Command Parsers
@@ -217,16 +209,13 @@ isShutdown _                                              = False
 
 esmtpCmd :: Stream s m Char => ParsecT s u m EsmtpCmd
 esmtpCmd = choice
-           [ esmtpData, rset, noop, quit, turn
-           , helo, mail, rcpt, send, soml, saml
-           , vrfy, expn, help, ehlo
-           ]
+  [esmtpData, rset, noop, quit, turn, helo, mail, rcpt, send, soml, saml, vrfy, expn, help, ehlo]
 
 -- | The parser name \"data\" was taken.
 esmtpData :: Stream s m Char => ParsecT s u m EsmtpCmd
 rset, quit, turn, helo, ehlo, mail :: Stream s m Char => ParsecT s u m EsmtpCmd
 rcpt, send, soml, saml, vrfy, expn :: Stream s m Char => ParsecT s u m EsmtpCmd
-help                               :: Stream s m Char => ParsecT s u m EsmtpCmd
+help :: Stream s m Char => ParsecT s u m EsmtpCmd
 
 -- | May have an optional 'word' argument, but it is ignored.
 noop :: Stream s m Char => ParsecT s u m EsmtpCmd
@@ -235,21 +224,19 @@ esmtpData = mkCmd0 "DATA" Data
 rset = mkCmd0 "RSET" Rset
 quit = mkCmd0 "QUIT" Quit
 turn = mkCmd0 "TURN" Turn
-helo = mkCmd1 "HELO" Helo     domain
-ehlo = mkCmd1 "EHLO" Ehlo     domain
+helo = mkCmd1 "HELO" Helo domain
+ehlo = mkCmd1 "EHLO" Ehlo domain
 mail = mkCmd1 "MAIL" MailFrom from_path
-rcpt = mkCmd1 "RCPT" RcptTo   to_path
-send = mkCmd1 "SEND" Send     from_path
-soml = mkCmd1 "SOML" Soml     from_path
-saml = mkCmd1 "SAML" Saml     from_path
-vrfy = mkCmd1 "VRFY" Vrfy     word
-expn = mkCmd1 "EXPN" Expn     word
+rcpt = mkCmd1 "RCPT" RcptTo to_path
+send = mkCmd1 "SEND" Send from_path
+soml = mkCmd1 "SOML" Soml from_path
+saml = mkCmd1 "SAML" Saml from_path
+vrfy = mkCmd1 "VRFY" Vrfy word
+expn = mkCmd1 "EXPN" Expn word
 
-help = try (mkCmd0 "HELP" (Help [])) <|>
-       mkCmd1 "HELP" Help (option [] word)
+help = try (mkCmd0 "HELP" (Help [])) <|> mkCmd1 "HELP" Help (option [] word)
 
-noop = try (mkCmd0 "NOOP" Noop) <|>
-       mkCmd1 "NOOP" (const Noop) (option [] word)
+noop = try (mkCmd0 "NOOP" Noop) <|> mkCmd1 "NOOP" (const Noop) (option [] word)
 
 
 ----------------------------------------------------------------------
@@ -259,20 +246,18 @@ noop = try (mkCmd0 "NOOP" Noop) <|>
 from_path :: Stream s m Char => ParsecT s u m Mailbox
 from_path = do
   caseString "from:"
-  (try (string "<>" >> return nullPath) <|> path)
-                                <?> "from-path"
+  (try (string "<>" >> return nullPath) <|> path) <?> "from-path"
 
 to_path :: Stream s m Char => ParsecT s u m Mailbox
 to_path = do
   caseString "to:"
-  (try (caseString "<postmaster>" >> return postmaster)
-     <|> path)                  <?> "to-path"
+  (try (caseString "<postmaster>" >> return postmaster) <|> path) <?> "to-path"
 
 path :: Stream s m Char => ParsecT s u m Mailbox
 path = between (char '<') (char '>') (p <?> "path")
-  where
+ where
   p = do
-    r1 <- option [] (a_d_l >>= \r -> char ':' >> return r)
+    r1              <- option [] (a_d_l >>= \r -> char ':' >> return r)
     (Mailbox _ l d) <- mailbox
     return (Mailbox r1 l d)
 
@@ -283,10 +268,7 @@ local_part :: Stream s m Char => ParsecT s u m String
 local_part = (dot_string <|> quoted_string) <?> "local-part"
 
 domain :: Stream s m Char => ParsecT s u m String
-domain = choice
-         [ tokenList subdomain '.'  <?> "domain"
-         , address_literal          <?> "address literal"
-         ]
+domain = choice [tokenList subdomain '.' <?> "domain", address_literal <?> "address literal"]
 
 a_d_l :: Stream s m Char => ParsecT s u m [String]
 a_d_l = sepBy1 at_domain (char ',') <?> "route-list"
@@ -296,16 +278,16 @@ at_domain = (char '@' >> domain) <?> "at-domain"
 
 -- | /TODO/: Add IPv6 address and general literals
 address_literal :: Stream s m Char => ParsecT s u m String
-address_literal = ipv4_literal  <?> "IPv4 address literal"
+address_literal = ipv4_literal <?> "IPv4 address literal"
 
 ipv4_literal :: Stream s m Char => ParsecT s u m String
 ipv4_literal = do
   rs <- between (char '[') (char ']') ipv4addr
-  return ('[': reverse (']': reverse rs))
+  return ('[' : reverse (']' : reverse rs))
 
 ipv4addr :: Stream s m Char => ParsecT s u m String
 ipv4addr = p <?> "IPv4 address literal"
-  where
+ where
   p = do
     r1 <- snum
     r2 <- char '.' >> snum
@@ -315,27 +297,21 @@ ipv4addr = p <?> "IPv4 address literal"
 
 subdomain :: Stream s m Char => ParsecT s u m String
 subdomain = p <?> "domain name"
-  where
+ where
   p = do
     r <- many1 (alpha <|> digit <|> char '-')
-    if last r == '-'
-        then fail "subdomain must not end with hyphen"
-        else return r
+    if last r == '-' then fail "subdomain must not end with hyphen" else return r
 
 dot_string :: Stream s m Char => ParsecT s u m String
 dot_string = tokenList atom '.' <?> "dot_string"
 
 atom :: Stream s m Char => ParsecT s u m String
-atom = many1 atext              <?> "atom"
-  where
-  atext = alpha <|> digit <|> oneOf "!#$%&'*+-/=?^_`{|}~"
+atom = many1 atext <?> "atom" where atext = alpha <|> digit <|> oneOf "!#$%&'*+-/=?^_`{|}~"
 
 snum :: Stream s m Char => ParsecT s u m String
 snum = do
   r <- manyNtoM 1 3 digit
-  if (read r :: Int) > 255
-     then fail "IP address parts must be 0 <= x <= 255"
-     else return r
+  if (read r :: Int) > 255 then fail "IP address parts must be 0 <= x <= 255" else return r
 
 number :: Stream s m Char => ParsecT s u m String
 number = many1 digit
@@ -344,8 +320,7 @@ number = many1 digit
 -- 'quoted_string'.
 
 word :: Stream s m Char => ParsecT s u m String
-word = (atom <|> fmap show quoted_string)
-       <?> "word or quoted-string"
+word = (atom <|> fmap show quoted_string) <?> "word or quoted-string"
 
 
 ----------------------------------------------------------------------
@@ -359,30 +334,34 @@ word = (atom <|> fmap show quoted_string)
 
 {-# ANN fixCRLF "HLint: ignore Use list literal pattern" #-}
 fixCRLF :: String -> String
-fixCRLF ('\r' :'\n':[]) = fixCRLF []
-fixCRLF (  x  :'\n':[]) = x : fixCRLF []
-fixCRLF (  x  :  xs   ) = x : fixCRLF xs
-fixCRLF      [ ]        = "\r\n"
+fixCRLF ('\r' : '\n' : []) = fixCRLF []
+fixCRLF (x    : '\n' : []) = x : fixCRLF []
+fixCRLF (x           : xs) = x : fixCRLF xs
+fixCRLF []                 = "\r\n"
 
 -- | Construct a parser for a command without arguments. Expects 'crlf'!
 
 mkCmd0 :: Stream s m Char => String -> a -> ParsecT s u m a
-mkCmd0 str cons = (do
-  try (caseString str)
-  _ <- skipMany wsp >> crlf
-  return cons)                          <?> str
+mkCmd0 str cons =
+  (do
+      try (caseString str)
+      _ <- skipMany wsp >> crlf
+      return cons
+    )
+    <?> str
 
 -- | Construct a parser for a command with an argument, which the given parser
 -- will handle. The result of the argument parser will be applied to the type
 -- constructor before it is returned. Expects 'crlf'!
 
-mkCmd1 :: Stream s m Char => String -> (a -> EsmtpCmd) -> ParsecT s u m a
-       -> ParsecT s u m EsmtpCmd
-mkCmd1 str cons p = choice
-  [ try (caseString str *> many1 wsp *> fmap cons p <* crlf)
-  , try (caseString str *> many1 wsp *> manyTill anyChar crlf $> WrongArg str)
-  , try (caseString str *> crlf $> WrongArg str)
-  ]                                     <?> str
+mkCmd1 :: Stream s m Char => String -> (a -> EsmtpCmd) -> ParsecT s u m a -> ParsecT s u m EsmtpCmd
+mkCmd1 str cons p =
+  choice
+      [ try (caseString str *> many1 wsp *> fmap cons p <* crlf)
+      , try (caseString str *> many1 wsp *> manyTill anyChar crlf $> WrongArg str)
+      , try (caseString str *> crlf $> WrongArg str)
+      ]
+    <?> str
 
 -- | @tokenList p '.'@ will parse a token of the form \"@p.p@\", or
 -- \"@p.p.p@\", and so on. Used in 'domain' and 'dot_string', for example.
