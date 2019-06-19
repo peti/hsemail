@@ -243,11 +243,11 @@ unstructured    = do r1 <- option [] fws
 
 date_time       :: Stream s m Char => ParsecT s u m ZonedTime
 date_time       = do optional (try (day_of_week >> char ','))
-                     day <- date
+                     d <- date
                      _ <- fws
                      (td,z) <- time
                      optional cfws
-                     return (ZonedTime (LocalTime day td) z)
+                     return (ZonedTime (LocalTime d td) z)
                   <?> "date/time specification"
 
 -- |This parser matches a 'day_name' or an 'obs_day_of_week' (optionally
