@@ -2,6 +2,7 @@
 
 ## v2.2.0
 
+* `caseString` no longer returns a string; it just returns `()`.
 * Make use of `DayOfWeek` type from new `time` library.
 * Derive `Eq` for `EsmtpCmd`.
 * Rename `smtpCmd` and `smtpData` to `esmtpCmd` and `esmtpData` respectively
