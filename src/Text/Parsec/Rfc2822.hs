@@ -23,7 +23,7 @@ import Data.Functor
 import Data.List ( intercalate )
 import Data.Maybe ( catMaybes )
 import Data.Monoid ( Monoid, mempty )
-import Data.Time.Calendar
+import Data.Time.Calendar.Compat
 import Data.Time.LocalTime
 import Text.Parsec hiding ( crlf )
 
@@ -251,23 +251,23 @@ date_time       = do optional (try (day_of_week >> char ','))
                   <?> "date/time specification"
 
 -- |This parser matches a 'day_name' or an 'obs_day_of_week' (optionally
--- wrapped in folding whitespace) and return its 'Day' value.
+-- wrapped in folding whitespace) and return the appropriate 'DayOfWeek' value.
 
-day_of_week     :: Stream s m Char => ParsecT s u m String
+day_of_week     :: Stream s m Char => ParsecT s u m DayOfWeek
 day_of_week     =     try (between (optional fws) (optional fws) day_name <?> "name of a day-of-the-week")
                   <|> obs_day_of_week
 
--- |This parser will the abbreviated weekday names (\"@Mon@\", \"@Tue@\", ...)
--- and return the appropriate 'Day' value.
+-- |This parser recognizes abbreviated weekday names (\"@Mon@\",
+-- \"@Tue@\",...).
 
-day_name        :: Stream s m Char => ParsecT s u m String
-day_name        =     caseString "Mon"
-                  <|> try (caseString "Tue")
-                  <|> caseString "Wed"
-                  <|> caseString "Thu"
-                  <|> caseString "Fri"
-                  <|> try (caseString "Sat")
-                  <|> caseString "Sun"
+day_name        :: Stream s m Char => ParsecT s u m DayOfWeek
+day_name        =     caseString "Mon" $> Monday
+                  <|> try (caseString "Tue" $> Tuesday)
+                  <|> caseString "Wed" $> Wednesday
+                  <|> caseString "Thu" $> Thursday
+                  <|> caseString "Fri" $> Friday
+                  <|> try (caseString "Sat" $> Saturday)
+                  <|> caseString "Sun" $> Sunday
                   <?> "name of a day-of-the-week"
 
 -- |This parser will match a date of the form \"@dd:mm:yyyy@\" and return
@@ -1011,7 +1011,7 @@ obs_fws         = do r1 <- many1 wsp
 -- |Parse a 'day_name' but allow for the obsolete folding syntax.
 -- TODO
 
-obs_day_of_week :: Stream s m Char => ParsecT s u m String
+obs_day_of_week :: Stream s m Char => ParsecT s u m DayOfWeek
 obs_day_of_week = unfold day_name <?> "day-of-the-week name"
 
 -- |Parse a 'year' but allow for a two-digit number (obsolete) and the
