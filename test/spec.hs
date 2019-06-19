@@ -10,7 +10,7 @@ import Text.Parsec ( parse, eof )
 import Text.Parsec.String ( Parser )
 
 parseTest :: Parser a -> String -> IO a
-parseTest p input = case parse (do { r <- p; eof; return r }) (show input) input of
+parseTest p input = case parse (p <* eof) (show input) input of
                       Left err -> fail ("parse error at " ++ show err)
                       Right r -> return r
 
@@ -300,7 +300,7 @@ main = hspec $ do
       parseIdemTest body "abc äöüß def"
 
   describe "Rfc2822.esmtpCmd" $ do
-    it "understands hand-picked ESMTP command examples" $ do
+    it "understands hand-picked ESMTP command examples" $
       parseTest esmtpCmd "helo test\r\n" `shouldReturn` Helo "test"
 
     it "recognizes missing arguments properly" $ do

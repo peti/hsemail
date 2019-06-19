@@ -132,7 +132,7 @@ comment = do _  <- char '('
 -- | Match any combination of 'fws' and 'comments'.
 
 cfws :: Stream s m Char => ParsecT s u m String
-cfws = concat <$> (many1 (choice [fws, comment]))
+cfws = concat <$> many1 (choice [fws, comment])
 
 -- ** Atom (section 3.2.4)
 
@@ -178,11 +178,11 @@ qcontent = many1 qtext <|> quoted_pair <?> "quoted string content"
 -- or following the \"atom\" is skipped automatically.
 
 quoted_string :: Stream s m Char => ParsecT s u m String
-quoted_string = (unfold $ do _  <- dquote
-                             r1 <- many ((++) <$> option [] fws <*> qcontent)
-                             r2 <- option [] fws
-                             _  <- dquote
-                             return ("\"" ++ concat r1 ++ r2 ++ "\""))
+quoted_string = unfold (do _  <- dquote
+                           r1 <- many ((++) <$> option [] fws <*> qcontent)
+                           r2 <- option [] fws
+                           _  <- dquote
+                           return ("\"" ++ concat r1 ++ r2 ++ "\""))
                 <?> "quoted string"
 
 
@@ -536,7 +536,7 @@ data GenericMessage a = Message [Field] a deriving Show
 -- rather easy to do. Refer to the 'fields' parser for further details.
 
 message :: (Monoid s, Stream s m Char) => ParsecT s u m (GenericMessage s)
-message = Message <$> fields <*> (option mempty (crlf *> body))
+message = Message <$> fields <*> option mempty (crlf *> body)
 
 
 -- | A message body is just an unstructured sequence of characters.
