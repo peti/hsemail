@@ -49,33 +49,33 @@ data EsmtpCmd
   | Noop                        -- ^ Optional argument ignored.
   | Quit
   | Turn
+  | SyntaxError String          -- ^ The peer sent a line we could not recognize.
   | WrongArg String
-      -- ^ When a valid command has been recognized, but the
-      -- argument parser fails, then this type will be
-      -- returned. The 'String' contains the name of the
-      -- command (in all upper-case) and the 'ParseError'
-      -- is, obviously, the error description.
+      -- ^ When a valid command has been recognized, but the argument parser
+      -- fails, then this type will be returned. The 'String' contains the name
+      -- of the command (in all upper-case).
   deriving (Eq)
 
 instance Show EsmtpCmd where
-  show (Helo str)       = "HELO " ++ str
-  show (Ehlo str)       = "EHLO " ++ str
-  show (MailFrom mbox)  = "MAIL FROM:" ++ show mbox
-  show (RcptTo mbox)    = "RCPT TO:" ++ show mbox
-  show Data             = "DATA"
-  show Rset             = "RSET"
-  show (Send mbox)      = "SEND " ++ show mbox
-  show (Soml mbox)      = "SOML " ++ show mbox
-  show (Saml mbox)      = "SAML " ++ show mbox
-  show (Vrfy str)       = "VRFY " ++ str
-  show (Expn str)       = "EXPN " ++ str
-  show Noop             = "NOOP"
-  show Quit             = "QUIT"
-  show Turn             = "TURN"
+  show (Helo str)        = "HELO " ++ str
+  show (Ehlo str)        = "EHLO " ++ str
+  show (MailFrom mbox)   = "MAIL FROM:" ++ show mbox
+  show (RcptTo mbox)     = "RCPT TO:" ++ show mbox
+  show Data              = "DATA"
+  show Rset              = "RSET"
+  show (Send mbox)       = "SEND " ++ show mbox
+  show (Soml mbox)       = "SOML " ++ show mbox
+  show (Saml mbox)       = "SAML " ++ show mbox
+  show (Vrfy str)        = "VRFY " ++ str
+  show (Expn str)        = "EXPN " ++ str
+  show Noop              = "NOOP"
+  show Quit              = "QUIT"
+  show Turn              = "TURN"
   show (Help t)
-    | null t            = "HELP"
-    | otherwise         = "HELP " ++ t
-  show (WrongArg str) = "Syntax error in argument of " ++ str ++ "."
+    | null t             = "HELP"
+    | otherwise          = "HELP " ++ t
+  show (SyntaxError str) = "Syntax error in line " ++ str ++ "."
+  show (WrongArg str)    = "Syntax error in argument of " ++ str ++ "."
 
 -- | The most general e-mail address has the form:
 -- @\<[\@route,...:]user\@domain\>@. This type, too, supports 'show' and

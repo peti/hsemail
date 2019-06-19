@@ -2,6 +2,8 @@
 
 ## v2.2.0
 
+* Add an `EsmtpCmd` that can represent syntax errors so that an underlying FSM
+  can be aware of that case.
 * `caseString` no longer returns a string; it just returns `()`.
 * Make use of `DayOfWeek` type from new `time` library.
 * Derive `Eq` for `EsmtpCmd`.
