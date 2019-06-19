@@ -17,7 +17,6 @@ module Text.Parsec.Rfc2821 where
 
 import Text.Parsec.Rfc2234
 
-import Control.Monad ( void )
 import Control.Exception ( assert )
 import Data.Char ( toLower )
 import Data.List ( intercalate )
