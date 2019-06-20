@@ -49,6 +49,7 @@ data EsmtpCmd
   | Noop                        -- ^ Optional argument ignored.
   | Quit
   | Turn
+  | StartTLS
   | SyntaxError String          -- ^ The peer sent a line we could not recognize.
   | WrongArg String
       -- ^ When a valid command has been recognized, but the argument parser
@@ -71,6 +72,7 @@ instance Show EsmtpCmd where
   show Noop                 = "NOOP"
   show Quit                 = "QUIT"
   show Turn                 = "TURN"
+  show StartTLS             = "StartTLS"
   show (Help t) | null t    = "HELP"
                 | otherwise = "HELP " ++ t
   show (SyntaxError str)    = "Syntax error in line " ++ str ++ "."
@@ -208,14 +210,15 @@ isShutdown _ = False
 -- /all/ command parsers expect their input to be terminated with 'crlf'.
 
 esmtpCmd :: Stream s m Char => ParsecT s u m EsmtpCmd
-esmtpCmd = choice
-  [esmtpData, rset, noop, quit, turn, helo, mail, rcpt, send, soml, saml, vrfy, expn, help, ehlo]
+esmtpCmd = choice [ esmtpData, rset, noop, quit, turn, helo, mail, rcpt
+                  , send, soml, saml, vrfy, expn, help, ehlo, starttls
+                  ]
 
 -- | The parser name \"data\" was taken.
 esmtpData :: Stream s m Char => ParsecT s u m EsmtpCmd
 rset, quit, turn, helo, ehlo, mail :: Stream s m Char => ParsecT s u m EsmtpCmd
 rcpt, send, soml, saml, vrfy, expn :: Stream s m Char => ParsecT s u m EsmtpCmd
-help :: Stream s m Char => ParsecT s u m EsmtpCmd
+help, starttls :: Stream s m Char => ParsecT s u m EsmtpCmd
 
 -- | May have an optional 'word' argument, but it is ignored.
 noop :: Stream s m Char => ParsecT s u m EsmtpCmd
@@ -233,6 +236,7 @@ soml = mkCmd1 "SOML" Soml from_path
 saml = mkCmd1 "SAML" Saml from_path
 vrfy = mkCmd1 "VRFY" Vrfy word
 expn = mkCmd1 "EXPN" Expn word
+starttls =  mkCmd0 "STARTTLS" StartTLS
 
 help = try (mkCmd0 "HELP" (Help [])) <|> mkCmd1 "HELP" Help (option [] word)
 
