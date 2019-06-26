@@ -16,12 +16,17 @@
 
 {-# LANGUAGE FlexibleContexts #-}
 
-module Text.Parsec.Rfc2234 where
+module Text.Parsec.Rfc2234
+  ( caseChar, caseString
+  , manyN, manyNtoM
+  , alpha, bit, character, cr, lf, crlf, ctl, dquote, hexdig
+  , htab, lwsp, octet, sp, vchar, wsp
+  , quoted_pair, quoted_string
+  ) where
 
 import Control.Monad ( liftM2, replicateM )
 import Data.Char ( toUpper, chr, ord )
-import Text.Parsec hiding (crlf)
-import qualified Text.Parsec.String as PS
+import Text.Parsec hiding ( crlf )
 
 -- Customize hlint ...
 {-# ANN module "HLint: ignore Use camelCase" #-}
@@ -55,14 +60,6 @@ manyNtoM n m p
   | n == m    = replicateM n p
   | n == 0    = foldr ((<|>) . (\x -> try (replicateM x p))) (return []) (reverse [1 .. m])
   | otherwise = liftM2 (++) (replicateM n p) (manyNtoM 0 (m - n) p)
-
--- | Helper function to generate 'Parser'-based instances for the 'Read' class.
-
-parsec2read :: PS.Parser a -> String -> [(a, String)]
-parsec2read f x  = either (error . show) id (parse f' "" x)
-  where
-  f' = do { a <- f; res <- getInput; return [(a,res)] }
-
 
 ----------------------------------------------------------------------
 -- * Primitive Parsers

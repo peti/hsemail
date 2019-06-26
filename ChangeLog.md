@@ -2,6 +2,8 @@
 
 ## v2.2.0
 
+* Drop the `parsec2read` function. `Read` is not supposed to be defined
+  manually, really. It's supposed to be a dual to the derived `Show` instance.
 * Drop the Rfc2821 module. This code is not generic enough to be useful,
   really. I use it in [Postmaster](http://hackage.haskell.org/package/postmaster),
   and there it will live henceforth.
