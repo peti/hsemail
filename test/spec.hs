@@ -1,6 +1,5 @@
 module Main ( main ) where
 
-import Text.Parsec.Rfc2821 ( esmtpCmd, EsmtpCmd(..) )
 import Text.Parsec.Rfc2822
 
 import Data.Time.Calendar
@@ -298,14 +297,3 @@ main = hspec $ do
   describe "Rfc2822.body" $
     it "parses 8-bit characters correctly" $
       parseIdemTest body "abc äöüß def"
-
-  describe "Rfc2822.esmtpCmd" $ do
-    it "understands hand-picked ESMTP command examples" $
-      parseTest esmtpCmd "helo test\r\n" `shouldReturn` Helo "test"
-
-    it "recognizes missing arguments properly" $ do
-      let isWrongArg (WrongArg _) = True
-          isWrongArg _            = False
-      parseTest esmtpCmd "EHLO \r\n" >>= (`shouldSatisfy` isWrongArg)
-      parseTest esmtpCmd "EHLO\r\n" >>= (`shouldSatisfy` isWrongArg)
-      parseTest esmtpCmd "EHLO !illegal!\r\n" >>= (`shouldSatisfy` isWrongArg)

@@ -2,18 +2,11 @@
 
 ## v2.2.0
 
-* Add `STARTTLS` command.
-* Add an `EsmtpCmd` that can represent syntax errors so that an underlying FSM
-  can be aware of that case.
+* Drop the Rfc2821 module. This code is not generic enough to be useful,
+  really. I use it in [Postmaster](http://hackage.haskell.org/package/postmaster),
+  and there it will live henceforth.
 * `caseString` no longer returns a string; it just returns `()`.
 * Make use of `DayOfWeek` type from new `time` library.
-* Derive `Eq` for `EsmtpCmd`.
-* Rename `smtpCmd` and `smtpData` to `esmtpCmd` and `esmtpData` respectively
-  for consistency with the data type names.
-* Ensure that ESMTP commands that take an argument are recognized even if the
-  argument is missing completely. This means that `EHLO\r\n` is now reported as
-  a `WrongArg` result properly.
-* `mkCmd1`: re-wrote the fragile start-parser-inside-of-a-parser logic
 * Drop the obsolete dependency on `mtl`.
 
 ## v2.1.0
