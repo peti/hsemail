@@ -309,7 +309,7 @@ month_name = choice [ try (caseString "Jan") $> 1
 
 day_of_month :: Stream s m Char => ParsecT s u m Int
 day_of_month = do r <- fmap read (manyNtoM 1 2 digit)
-                  guard (r >= 1 && r < 31)
+                  guard (r >= 1 && r <= 31)
                   return r
 
 -- | Match a 1 or 2-digit number (day of month), recognizing both standard and
