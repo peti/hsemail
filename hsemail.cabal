@@ -1,5 +1,5 @@
 name:               hsemail
-version:            2.2.0
+version:            2.2.1
 synopsis:           Parsec parsers for the Internet Message format (e-mail)
 description:        Parsec parsers for the Internet Message format defined in RFC2822.
 license:            BSD3
@@ -10,7 +10,7 @@ author:             Peter Simons,
                     Marty Pauley
 maintainer:         Peter Simons <simons@cryp.to>
 stability:          stable
-tested-with:        GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.1
+tested-with:        GHC == 7.10.3 || == 8.0.2 || == 8.2.2 || == 8.4.4 || == 8.6.5 || == 8.8.4 || == 8.10.2
 category:           Parsing
 homepage:           https://github.com/peti/hsemail#readme
 bug-reports:        https://github.com/peti/hsemail/issues
