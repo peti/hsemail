@@ -35,12 +35,14 @@ main = hspec $ do
 
   describe "Rfc2822.day" $ do
     it "parses a hand-picked day-of-months correctly" $ do
+      parseTest day "1" `shouldReturn` 1
       parseTest day "09" `shouldReturn` 9
       parseTest day "15" `shouldReturn` 15
+      parseTest day "31" `shouldReturn` 31
 
     it "does perform range checking" $ do
       parseFailure day "00"
-      parseFailure day "99"
+      parseFailure day "32"
 
     it "fails properly on incomplete input" $ do
       parseFailure day "Mon"
