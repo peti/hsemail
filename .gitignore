@@ -1,5 +1,4 @@
 # ignore cabal build files
 
-/.*.environment.*-*
 /dist
 /dist-newstyle
