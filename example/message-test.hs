@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Text.ParserCombinators.Parsec ( parse )
-import Text.ParserCombinators.Parsec.Rfc2822
+import Text.Parsec ( parse )
+import Text.Parsec.Rfc2822
 
 -- Read an Internet message from standard input, parse it,
 -- and return the result.
