@@ -1,5 +1,15 @@
 # Change Log for hsemail
 
+## v2.2.2
+
+* Introduce a flags development builds can enable to compile the examples.
+* update example code
+
+## v2.2.1
+
+* Improve test cases for the 'day' parser.
+* Fix day of month parser by also accepting the 31. of a month
+
 ## v2.2.0
 
 * Drop the `parsec2read` function. `Read` is not supposed to be defined
