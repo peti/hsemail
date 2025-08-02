@@ -1,0 +1,22 @@
+# .github/workflows/hlint.yml
+
+name: HLint
+on:
+  - push
+  - pull_request
+jobs:
+  hlint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 'Set up HLint'
+      uses: haskell-actions/hlint-setup@v2
+
+    - name: 'Run HLint (src)'
+      uses: haskell-actions/hlint-run@v2
+      with:
+        path: src/
+        fail-on: suggestion
